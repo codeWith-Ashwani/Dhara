@@ -33,7 +33,7 @@ dhara = "dhara.cli:main"
 packages = ["src/dhara"]
 
 [tool.pytest.ini_options]
-addopts = "-q --strict-markers --basetemp=tmp/pytest"
+addopts = "-q --strict-markers --basetemp=.pytest_tmp"
 testpaths = ["tests"]
 
 [tool.ruff]
