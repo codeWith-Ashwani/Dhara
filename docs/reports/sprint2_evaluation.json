@@ -1,0 +1,85 @@
+{
+  "generated_at": "2026-09-17T13:08:51.430644+00:00",
+  "safety_mode": "shadow",
+  "data_classification": "synthetic",
+  "operational_performance_claim": false,
+  "dataset": {
+    "path": "data/training/synthetic_sensor_episodes.csv",
+    "sha256": "c0cc1532f986ab4af8d131c8fb67d05199e313628cee6f81265ac2dddb55f882",
+    "rows": 120,
+    "events": 10,
+    "positive_rows": 20
+  },
+  "model": {
+    "version": "loop-a-sprint2",
+    "artifact_path": "var/models/loop_a_sprint2.joblib",
+    "feature_names": [
+      "rainfall_mm_1h",
+      "rainfall_mm_3h",
+      "rainfall_mm_6h",
+      "rainfall_mm_24h",
+      "rainfall_mm_72h",
+      "river_stage_m",
+      "river_stage_rate_m_per_h",
+      "pump_running",
+      "forecast_probability",
+      "flagged_observation_count"
+    ],
+    "weights": {
+      "novelty": 0.25,
+      "precursor": 0.4,
+      "trend": 0.35
+    },
+    "components": {
+      "novelty": "normal-only MLP reconstruction model",
+      "precursor": "isotonic-calibrated gradient boosting",
+      "trend": "sigmoid-calibrated trend-feature logistic surrogate"
+    }
+  },
+  "evaluation": {
+    "sample_count": 120,
+    "event_count": 10,
+    "threshold": 0.5,
+    "brier_score": 0.017755,
+    "probability_of_detection": 1.0,
+    "false_alarm_ratio": 0.0,
+    "critical_success_index": 1.0,
+    "reliability": [
+      {
+        "lower": 0.0,
+        "upper": 0.2,
+        "count": 86,
+        "mean_confidence": 0.048118,
+        "observed_frequency": 0.0
+      },
+      {
+        "lower": 0.2,
+        "upper": 0.4,
+        "count": 11,
+        "mean_confidence": 0.260946,
+        "observed_frequency": 0.0
+      },
+      {
+        "lower": 0.4,
+        "upper": 0.6,
+        "count": 3,
+        "mean_confidence": 0.480714,
+        "observed_frequency": 0.0
+      },
+      {
+        "lower": 0.6,
+        "upper": 0.8,
+        "count": 1,
+        "mean_confidence": 0.795234,
+        "observed_frequency": 1.0
+      },
+      {
+        "lower": 0.8,
+        "upper": 1.0,
+        "count": 19,
+        "mean_confidence": 0.882263,
+        "observed_frequency": 1.0
+      }
+    ]
+  }
+}

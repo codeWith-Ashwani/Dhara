@@ -67,3 +67,53 @@ def test_invalid_provider_payload_returns_422(tmp_path: Path) -> None:
         )
     assert response.status_code == 422
     assert response.json()["detail"].startswith("unsupported provider")
+
+
+def test_loop_a_inference_is_versioned_and_shadow_only(
+    tmp_path: Path, fitted_sensor_model
+) -> None:
+    app = create_app(
+        tmp_path / "api.db",
+        replay_root=REPLAY_ROOT,
+        sensor_model=fitted_sensor_model,
+    )
+    payload = {
+        "rainfall_mm_1h": 48.0,
+        "rainfall_mm_3h": 96.0,
+        "rainfall_mm_6h": 150.0,
+        "rainfall_mm_24h": 210.0,
+        "rainfall_mm_72h": 260.0,
+        "river_stage_m": 4.2,
+        "river_stage_rate_m_per_h": 0.28,
+        "pump_running": 0.0,
+        "forecast_probability": 0.92,
+        "flagged_observation_count": 0.0,
+    }
+    with TestClient(app) as client:
+        status = client.get("/v1/models/loop-a")
+        prediction = client.post("/v1/risk/sensor", json=payload)
+
+    assert status.json() == {"loaded": True, "version": "test-loop-a", "mode": "shadow"}
+    assert prediction.status_code == 200
+    assert prediction.json()["model_version"] == "test-loop-a"
+    assert 0 <= prediction.json()["sensor_confidence"] <= 1
+
+
+def test_loop_a_inference_fails_closed_without_a_model(tmp_path: Path) -> None:
+    app = create_app(tmp_path / "api.db", replay_root=REPLAY_ROOT)
+    payload = {
+        "rainfall_mm_1h": 1.0,
+        "rainfall_mm_3h": 2.0,
+        "rainfall_mm_6h": 3.0,
+        "rainfall_mm_24h": 4.0,
+        "rainfall_mm_72h": 5.0,
+        "river_stage_m": 2.0,
+        "river_stage_rate_m_per_h": 0.0,
+        "pump_running": 1.0,
+        "forecast_probability": 0.1,
+        "flagged_observation_count": 0.0,
+    }
+    with TestClient(app) as client:
+        response = client.post("/v1/risk/sensor", json=payload)
+    assert response.status_code == 503
+    assert response.json()["detail"] == "Loop A model is not loaded"

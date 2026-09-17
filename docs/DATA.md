@@ -6,6 +6,16 @@
 
 It must not be used to claim predictive performance. Its only purpose is deterministic pipeline testing.
 
+## Sprint 2 model-contract fixture
+
+`data/training/synthetic_sensor_episodes.csv` contains ten deterministic synthetic episodes and 120 feature rows. It exists to exercise grouped evaluation, calibration, model persistence and inference contracts. The generated evaluation report always carries `operational_performance_claim: false`.
+
+Rebuild it with:
+
+```bash
+python scripts/build_synthetic_sensor_fixture.py
+```
+
 ## Ground truth needed for Sprint 2
 
 For the chosen pilot wards, acquire at least five monsoon seasons where possible:

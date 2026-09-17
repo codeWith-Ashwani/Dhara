@@ -70,6 +70,10 @@ Three calibrated model heads run independently over the shared feature view:
 
 Their calibrated outputs combine as `S = clip(w1*A + w2*C + w3*T, 0, 1)`. Initial weights are `(0.25, 0.40, 0.35)` and later become zone-specific, versioned policy.
 
+Sprint 2 implements the contract in shadow mode. T1 is a small normal-only MLP reconstruction model over feature snapshots. T2 is an isotonic-calibrated gradient-boosted classifier with signed feature-importance attribution. T3 is currently a sigmoid-calibrated logistic surrogate over sequence-derived rainfall, river-rate and forecast features. The production T3 TCN/LSTM and TreeSHAP explanation path intentionally remain substitutions to be validated once the real event ledger is available; the public interface does not change when they replace the surrogates.
+
+Evaluation is grouped by event: every fold holds out one complete episode, preventing adjacent timesteps from the same event leaking into both training and validation. Model artifacts are versioned and their reports include a dataset SHA-256. Joblib artifacts are executable Python serialization and must only be loaded from the controlled internal model registry, never from user uploads.
+
 ### Loop B - community inference
 
 Reports pass capture-integrity, hazard-content, perceptual-deduplication, reporter-trust, spatial-spread and burst-rate gates. The cluster score is a trust-weighted noisy-OR, damped by spatial spread and exponential recency. Multiple reports from one device or micro-cell are capped before aggregation.

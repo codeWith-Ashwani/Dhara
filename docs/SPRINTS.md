@@ -20,6 +20,8 @@ Exit test: replay the supplied window twice; the second run creates no duplicate
 
 ## Sprint 2 - Instrument loop
 
+**Status:** implemented in shadow mode using a synthetic contract fixture. Replacement with authority-verified historical events is required before performance can be assessed.
+
 Deliverables:
 
 - event-ledger import and leave-one-event-out split;
@@ -28,7 +30,7 @@ Deliverables:
 - probability calibration, reliability diagram, POD/FAR/CSI and Brier score;
 - per-feature explanations stored with every `S` result.
 
-Exit test: a held-out real event produces versioned per-cell `S` values and a reproducible evaluation report.
+Exit test for the software path: leave-one-event-out evaluation produces versioned per-cell `S` values and a reproducible report. The real-event exit criterion remains pending data acquisition.
 
 ## Sprint 3 - Community loop and governed fusion
 

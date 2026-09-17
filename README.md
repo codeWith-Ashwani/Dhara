@@ -8,7 +8,7 @@ The prototype deliberately targets one hazard: urban and peri-urban flooding in 
 
 ## What exists today
 
-Sprint 1 provides the ingestion and replay spine on which the two detection loops will run:
+Sprints 1 and 2 provide the ingestion spine and the first shadow-mode instrument loop:
 
 - provider adapters for IMD rainfall, CWC gauges, ULB pump telemetry and Flood Hub probability snapshots;
 - range, timestamp, location, unit and staleness quality checks;
@@ -18,6 +18,9 @@ Sprint 1 provides the ingestion and replay spine on which the two detection loop
 - a deterministic 48-hour Pune Ward 14 replay fixture;
 - FastAPI endpoints and a `dhara` command-line replay tool;
 - automated tests and GitHub Actions CI.
+- a normal-only reconstruction model, calibrated gradient-boosted precursor model and calibrated trend surrogate;
+- fused sensor confidence `S`, signed feature attribution and versioned model artifacts;
+- leave-one-event-out Brier, POD, FAR, CSI and reliability evaluation.
 
 The fixture is synthetic and clearly labelled. It proves the pipeline contract; it is not presented as historical ground truth.
 
@@ -30,6 +33,8 @@ python -m venv .venv
 .venv/Scripts/activate
 python -m pip install -e ".[dev]"
 dhara replay data/replays/pune_ward14_48h.jsonl --database var/dhara.db
+python scripts/build_synthetic_sensor_fixture.py
+dhara train-loop-a data/training/synthetic_sensor_episodes.csv
 uvicorn dhara.api:app --reload
 ```
 
