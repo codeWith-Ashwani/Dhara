@@ -164,6 +164,13 @@ class DecisionAuditRepository:
         ).fetchall()
         return tuple(_from_row(row) for row in rows)
 
+    def head(self) -> tuple[int, str]:
+        row = self._connection.execute(
+            "SELECT sequence, event_hash FROM decision_audit_events "
+            "ORDER BY sequence DESC LIMIT 1"
+        ).fetchone()
+        return (0, "0" * 64) if row is None else (int(row["sequence"]), row["event_hash"])
+
     def verify_chain(self) -> bool:
         rows = self._connection.execute(
             "SELECT * FROM decision_audit_events ORDER BY sequence"

@@ -8,8 +8,8 @@ The prototype deliberately targets one hazard: urban and peri-urban flooding in 
 
 ## What exists today
 
-Sprints 1 through 5 provide the ingestion spine, both evidence loops, the shadow-mode
-operator workflow, and an audited outcome-learning cycle:
+Sprints 1 through 6 provide the ingestion spine, both evidence loops, the shadow-mode
+operator workflow, an audited outcome-learning cycle, and pilot control-plane boundaries:
 
 - provider adapters for IMD rainfall, CWC gauges, ULB pump telemetry and Flood Hub probability snapshots;
 - range, timestamp, location, unit and staleness quality checks;
@@ -39,7 +39,12 @@ operator workflow, and an audited outcome-learning cycle:
   score does not improve;
 - privacy-filtered public calibration metrics with small-sample suppression;
 - hard shadow-mode controls and fail-closed classifier, signature, and attestation paths;
-- a load/chaos/privacy rehearsal and operator runbook.
+- a load/chaos/privacy rehearsal and operator runbook;
+- durable community reports, reporter trust, and restart-safe device replay counters;
+- short-lived signed operator claims with viewer/operator/supervisor role enforcement;
+- immutable, provenance-bearing authority event-ledger import;
+- leave-one-event-group-out calibration evaluation with bootstrap uncertainty gates;
+- single-active nightly job leases, low-cardinality metrics, and signed external anchor files.
 
 The fixture is synthetic and clearly labelled. It proves the pipeline contract; it is not presented as historical ground truth.
 
@@ -57,10 +62,25 @@ dhara train-loop-a data/training/synthetic_sensor_episodes.csv
 python scripts/run_sprint3_adversarial_demo.py
 python scripts/run_sprint4_acceptance_demo.py
 python scripts/run_sprint5_pilot_rehearsal.py
+python scripts/run_sprint6_pilot_controls.py
 uvicorn dhara.api:app --reload
 ```
 
 On macOS/Linux, activate the environment with `source .venv/bin/activate`.
+
+The operator APIs require a configured secret and a short-lived token. Use a unique secret of at
+least 32 bytes; never commit it:
+
+```bash
+export DHARA_OPERATOR_HMAC_SECRET="replace-with-a-secret-from-your-secret-manager"
+export DHARA_AUDIT_ANCHOR_SECRET="replace-with-a-separate-anchor-secret"
+dhara issue-operator-token control-room-01 --role supervisor --minutes 30
+```
+
+On PowerShell, set the same values with `$env:DHARA_OPERATOR_HMAC_SECRET` and
+`$env:DHARA_AUDIT_ANCHOR_SECRET`. Paste the issued token into `/operator`. When no operator
+secret is configured the process uses an ephemeral key, so previously issued tokens cannot
+authenticate and restart invalidates all tokens.
 
 Useful endpoints:
 
@@ -83,6 +103,14 @@ Useful endpoints:
 - `GET /v1/learning/status`
 - `GET /v1/public/calibration`
 - `GET /v1/zone-policy/{cell_id}`
+- `POST /v1/authority/events/import`
+- `GET /v1/authority/events/summary`
+- `POST /v1/heldout/evaluate`
+- `GET /v1/public/heldout-calibration`
+- `POST /v1/jobs/nightly/run`
+- `POST|GET /v1/audit/anchor`
+- `GET /v1/operations/status`
+- `GET /metrics`
 
 Run the checks:
 

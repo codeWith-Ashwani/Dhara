@@ -1,21 +1,27 @@
 "use strict";
 
-const state = { cases: [], selectedId: null, dossier: null };
+const state = { cases: [], selectedId: null, dossier: null, token: null, principal: null };
 const queue = document.querySelector("#queue");
 const caseCount = document.querySelector("#case-count");
 const emptyState = document.querySelector("#empty-state");
 const caseContent = document.querySelector("#case-content");
 const panels = document.querySelector("#panels");
 const actionStatus = document.querySelector("#action-status");
+const authStatus = document.querySelector("#auth-status");
 
+document.querySelector("#connect").addEventListener("click", connectOperator);
 document.querySelector("#refresh").addEventListener("click", loadQueue);
 document.querySelectorAll("[data-action]").forEach((button) => {
   button.addEventListener("click", () => submitAction(button.dataset.action));
 });
 
 async function loadQueue() {
+  if (!state.token) {
+    queue.replaceChildren(messageNode("Connect a short-lived operator token.", "queue-empty"));
+    return;
+  }
   try {
-    const response = await fetch("/v1/triage", { headers: { Accept: "application/json" } });
+    const response = await fetch("/v1/triage", { headers: requestHeaders() });
     if (!response.ok) throw new Error("Triage service is unavailable");
     state.cases = await response.json();
     renderQueue();
@@ -63,7 +69,9 @@ async function selectCase(alertId) {
   renderQueue();
   actionStatus.textContent = "";
   try {
-    const response = await fetch(`/v1/alerts/${encodeURIComponent(alertId)}/dossier`);
+    const response = await fetch(`/v1/alerts/${encodeURIComponent(alertId)}/dossier`, {
+      headers: requestHeaders(),
+    });
     if (!response.ok) throw new Error("The evidence dossier could not be loaded");
     state.dossier = await response.json();
     renderCase();
@@ -179,7 +187,7 @@ async function submitAction(action) {
   try {
     const response = await fetch(`/v1/alerts/${encodeURIComponent(state.selectedId)}/actions`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      headers: requestHeaders(true),
       body: JSON.stringify(payload),
     });
     const result = await response.json();
@@ -192,6 +200,40 @@ async function submitAction(action) {
     actionStatus.textContent = error.message;
     actionStatus.classList.add("error");
   }
+}
+
+async function connectOperator() {
+  const token = document.querySelector("#operator-token").value.trim();
+  if (!token) {
+    authStatus.textContent = "A bearer token is required";
+    return;
+  }
+  try {
+    const principal = decodeTokenPayload(token);
+    state.token = token;
+    state.principal = principal;
+    document.querySelector("#actor-id").value = principal.sub;
+    authStatus.textContent = `${principal.sub} · ${principal.role}`;
+    await loadQueue();
+  } catch (_error) {
+    state.token = null;
+    state.principal = null;
+    authStatus.textContent = "Token format is invalid";
+  }
+}
+
+function requestHeaders(hasBody = false) {
+  const headers = { Accept: "application/json", Authorization: `Bearer ${state.token}` };
+  if (hasBody) headers["Content-Type"] = "application/json";
+  return headers;
+}
+
+function decodeTokenPayload(token) {
+  const encoded = token.split(".")[0].replaceAll("-", "+").replaceAll("_", "/");
+  const padded = encoded.padEnd(Math.ceil(encoded.length / 4) * 4, "=");
+  const payload = JSON.parse(atob(padded));
+  if (!payload.sub || !payload.role) throw new Error("Missing operator claims");
+  return payload;
 }
 
 function setMeter(name, value) {
@@ -225,5 +267,4 @@ function showEmpty() {
   caseContent.hidden = true;
 }
 
-loadQueue();
 setInterval(loadQueue, 15000);

@@ -1,13 +1,29 @@
 from __future__ import annotations
 
 from dataclasses import asdict
+from datetime import UTC, datetime
 from pathlib import Path
 
 from fastapi.testclient import TestClient
 
 from dhara.api import create_app
+from dhara.auth import OperatorRole
 
 REPLAY_ROOT = Path(__file__).parents[1] / "data" / "replays"
+
+
+def _auth_headers(
+    app,
+    *,
+    role: OperatorRole = OperatorRole.SUPERVISOR,
+    subject: str = "api-officer",
+) -> dict[str, str]:
+    token = app.state.operator_authenticator.issue_token(
+        subject=subject,
+        role=role,
+        issued_at=datetime.now(UTC),
+    )
+    return {"Authorization": f"Bearer {token}"}
 
 
 def _payload() -> dict[str, object]:
@@ -36,6 +52,7 @@ def _community_payload(submission) -> dict[str, object]:
 
 def test_observation_api_is_idempotent_and_exposes_features(tmp_path: Path) -> None:
     app = create_app(tmp_path / "api.db", replay_root=REPLAY_ROOT)
+    headers = _auth_headers(app)
     with TestClient(app) as client:
         assert client.get("/health").json()["mode"] == "shadow"
         first = client.post("/v1/observations", json=_payload())
@@ -46,13 +63,16 @@ def test_observation_api_is_idempotent_and_exposes_features(tmp_path: Path) -> N
         assert second.json()["created"] is False
 
         cell_id = first.json()["cell_id"]
-        listed = client.get("/v1/observations", params={"cell_id": cell_id})
+        listed = client.get(
+            "/v1/observations", params={"cell_id": cell_id}, headers=headers
+        )
         assert listed.status_code == 200
         assert len(listed.json()) == 1
 
         features = client.get(
             f"/v1/features/{cell_id}",
             params={"as_of": "2024-07-26T18:05:00+05:30"},
+            headers=headers,
         )
         assert features.status_code == 200
         assert features.json()["rainfall_mm_1h"] == 12.5
@@ -60,9 +80,14 @@ def test_observation_api_is_idempotent_and_exposes_features(tmp_path: Path) -> N
 
 def test_replay_endpoint_confines_paths_to_replay_root(tmp_path: Path) -> None:
     app = create_app(tmp_path / "api.db", replay_root=REPLAY_ROOT)
+    headers = _auth_headers(app)
     with TestClient(app) as client:
-        replay = client.post("/v1/replays", json={"path": "pune_ward14_48h.jsonl"})
-        traversal = client.post("/v1/replays", json={"path": "../../pyproject.toml"})
+        replay = client.post(
+            "/v1/replays", json={"path": "pune_ward14_48h.jsonl"}, headers=headers
+        )
+        traversal = client.post(
+            "/v1/replays", json={"path": "../../pyproject.toml"}, headers=headers
+        )
 
     assert replay.status_code == 200
     assert replay.json()["created"] == 18
@@ -87,6 +112,7 @@ def test_loop_a_inference_is_versioned_and_shadow_only(
         replay_root=REPLAY_ROOT,
         sensor_model=fitted_sensor_model,
     )
+    headers = _auth_headers(app)
     payload = {
         "rainfall_mm_1h": 48.0,
         "rainfall_mm_3h": 96.0,
@@ -100,8 +126,8 @@ def test_loop_a_inference_is_versioned_and_shadow_only(
         "flagged_observation_count": 0.0,
     }
     with TestClient(app) as client:
-        status = client.get("/v1/models/loop-a")
-        prediction = client.post("/v1/risk/sensor", json=payload)
+        status = client.get("/v1/models/loop-a", headers=headers)
+        prediction = client.post("/v1/risk/sensor", json=payload, headers=headers)
 
     assert status.json() == {"loaded": True, "version": "test-loop-a", "mode": "shadow"}
     assert prediction.status_code == 200
@@ -111,6 +137,7 @@ def test_loop_a_inference_is_versioned_and_shadow_only(
 
 def test_loop_a_inference_fails_closed_without_a_model(tmp_path: Path) -> None:
     app = create_app(tmp_path / "api.db", replay_root=REPLAY_ROOT)
+    headers = _auth_headers(app)
     payload = {
         "rainfall_mm_1h": 1.0,
         "rainfall_mm_3h": 2.0,
@@ -124,7 +151,7 @@ def test_loop_a_inference_fails_closed_without_a_model(tmp_path: Path) -> None:
         "flagged_observation_count": 0.0,
     }
     with TestClient(app) as client:
-        response = client.post("/v1/risk/sensor", json=payload)
+        response = client.post("/v1/risk/sensor", json=payload, headers=headers)
     assert response.status_code == 503
     assert response.json()["detail"] == "Loop A model is not loaded"
 
@@ -135,6 +162,7 @@ def test_community_reports_feed_governed_fusion(tmp_path: Path, community_harnes
         replay_root=REPLAY_ROOT,
         community_engine=community_harness.engine,
     )
+    headers = _auth_headers(app)
     reporters = ("verified-1", "citizen-2", "citizen-3", "citizen-4")
     with TestClient(app) as client:
         responses = []
@@ -162,15 +190,15 @@ def test_community_reports_feed_governed_fusion(tmp_path: Path, community_harnes
             "sensor_confidence": 0.95,
             "as_of": community_harness.now.isoformat(),
         }
-        first = client.post("/v1/fusion/evaluate", json=request)
-        second = client.post("/v1/fusion/evaluate", json=request)
+        first = client.post("/v1/fusion/evaluate", json=request, headers=headers)
+        second = client.post("/v1/fusion/evaluate", json=request, headers=headers)
 
         alert_id = second.json()["alert"]["alert_id"]
         dashboard = client.get("/operator")
         dashboard_css = client.get("/static/dashboard.css")
         dashboard_js = client.get("/static/dashboard.js")
-        triage = client.get("/v1/triage")
-        dossier = client.get(f"/v1/alerts/{alert_id}/dossier")
+        triage = client.get("/v1/triage", headers=headers)
+        dossier = client.get(f"/v1/alerts/{alert_id}/dossier", headers=headers)
         action = client.post(
             f"/v1/alerts/{alert_id}/actions",
             json={
@@ -183,6 +211,7 @@ def test_community_reports_feed_governed_fusion(tmp_path: Path, community_harnes
                 "depth": "knee",
                 "valid_until": "2026-09-17T20:30:00+05:30",
             },
+            headers=headers,
         )
         confirm = client.post(
             f"/v1/alerts/{alert_id}/actions",
@@ -196,20 +225,23 @@ def test_community_reports_feed_governed_fusion(tmp_path: Path, community_harnes
                 "depth": "knee",
                 "valid_until": "2026-09-17T20:30:00+05:30",
             },
+            headers=headers,
         )
-        outcomes = client.get("/v1/outcomes")
+        outcomes = client.get("/v1/outcomes", headers=headers)
         learning = client.post(
             "/v1/learning/run",
             json={"as_of": "2026-09-17T21:00:00+05:30"},
+            headers=headers,
         )
         learning_repeat = client.post(
             "/v1/learning/run",
             json={"as_of": "2026-09-17T21:05:00+05:30"},
+            headers=headers,
         )
-        learning_status = client.get("/v1/learning/status")
+        learning_status = client.get("/v1/learning/status", headers=headers)
         public_metrics = client.get("/v1/public/calibration")
         safety = client.get("/v1/safety")
-        audit = client.get(f"/v1/alerts/{alert_id}/audit")
+        audit = client.get(f"/v1/alerts/{alert_id}/audit", headers=headers)
 
     assert first.status_code == 200
     assert first.json()["crowd"]["gate_satisfied"] is True

@@ -3,7 +3,9 @@ from __future__ import annotations
 import argparse
 import json
 from collections.abc import Sequence
+from datetime import UTC, datetime, timedelta
 
+from dhara.auth import OperatorAuthenticator, OperatorRole
 from dhara.ingestion import IngestionService
 from dhara.replay import replay_file
 from dhara.repository import ObservationRepository
@@ -26,6 +28,13 @@ def _parser() -> argparse.ArgumentParser:
         choices=("synthetic", "verified"),
         default="synthetic",
     )
+    token = commands.add_parser(
+        "issue-operator-token",
+        help="issue a short-lived shadow-console token from the configured gateway secret",
+    )
+    token.add_argument("subject")
+    token.add_argument("--role", choices=tuple(OperatorRole), default="viewer")
+    token.add_argument("--minutes", type=int, default=30)
     return parser
 
 
@@ -48,6 +57,20 @@ def main(argv: Sequence[str] | None = None) -> int:
             data_classification=args.data_classification,
         )
         print(json.dumps(report, indent=2))
+        return 0
+    if args.command == "issue-operator-token":
+        authenticator = OperatorAuthenticator.from_environment()
+        if authenticator.ephemeral:
+            raise RuntimeError(
+                "DHARA_OPERATOR_HMAC_SECRET must be configured before issuing tokens"
+            )
+        token = authenticator.issue_token(
+            subject=args.subject,
+            role=OperatorRole(args.role),
+            issued_at=datetime.now(UTC),
+            lifetime=timedelta(minutes=args.minutes),
+        )
+        print(token)
         return 0
     return 2
 

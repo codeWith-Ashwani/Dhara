@@ -74,20 +74,41 @@ class ReporterProfile:
     last_activity: datetime | None = None
 
 
+class ReporterTrustStore(Protocol):
+    def load(self, reporter_id: str) -> ReporterProfile | None: ...
+
+    def save(self, profile: ReporterProfile) -> None: ...
+
+
 class ReporterTrustEngine:
-    def __init__(self) -> None:
+    def __init__(self, store: ReporterTrustStore | None = None) -> None:
         self._profiles: dict[str, ReporterProfile] = {}
+        self._store = store
 
     def register(self, reporter_id: str, role: ReporterRole) -> ReporterProfile:
+        existing = self._profiles.get(reporter_id)
+        if existing is None and self._store is not None:
+            existing = self._store.load(reporter_id)
+            if existing is not None:
+                self._profiles[reporter_id] = existing
+        if existing is not None:
+            if existing.role is not role:
+                raise ValueError("reporter role conflicts with durable profile")
+            return existing
         alpha, beta = _ROLE_PRIORS[role]
         profile = ReporterProfile(reporter_id, role, alpha, beta)
         self._profiles[reporter_id] = profile
+        if self._store is not None:
+            self._store.save(profile)
         return profile
 
     def profile(self, reporter_id: str) -> ReporterProfile:
-        return self._profiles.get(reporter_id) or self.register(
-            reporter_id, ReporterRole.ANONYMOUS
-        )
+        profile = self._profiles.get(reporter_id)
+        if profile is None and self._store is not None:
+            profile = self._store.load(reporter_id)
+            if profile is not None:
+                self._profiles[reporter_id] = profile
+        return profile or self.register(reporter_id, ReporterRole.ANONYMOUS)
 
     def trust(self, reporter_id: str, *, as_of: datetime) -> float:
         profile = self.profile(reporter_id)
@@ -107,6 +128,8 @@ class ReporterTrustEngine:
         else:
             profile.beta += 1
         profile.last_activity = at
+        if self._store is not None:
+            self._store.save(profile)
         return self.trust(reporter_id, as_of=at)
 
 
@@ -208,6 +231,7 @@ class CommunityReport:
     reporter_id: str
     reporter_role: ReporterRole
     device_id: str
+    device_counter: int
     captured_at: datetime
     received_at: datetime
     latitude: float
@@ -230,6 +254,14 @@ class CommunityReport:
 
     def to_dict(self) -> dict[str, object]:
         return asdict(self)
+
+
+class ReportStore(Protocol):
+    def add(self, report: CommunityReport) -> None: ...
+
+    def all(self) -> tuple[CommunityReport, ...]: ...
+
+    def recent(self, *, as_of: datetime, window: timedelta) -> list[CommunityReport]: ...
 
 
 class InMemoryReportStore:
@@ -290,7 +322,7 @@ class CommunityEngine:
         classifier: ContentClassifier | None = None,
         attestation: AttestationVerifier | None = None,
         signatures: SignatureVerifier | None = None,
-        store: InMemoryReportStore | None = None,
+        store: ReportStore | None = None,
         policy: CommunityPolicy | None = None,
     ) -> None:
         self.trust = trust or ReporterTrustEngine()
@@ -302,6 +334,13 @@ class CommunityEngine:
         self._device_counters: dict[str, int] = {}
         self._device_arrivals: defaultdict[str, deque[datetime]] = defaultdict(deque)
         self._reporter_arrivals: defaultdict[str, deque[datetime]] = defaultdict(deque)
+        for report in self.store.all():
+            self._device_counters[report.device_id] = max(
+                report.device_counter,
+                self._device_counters.get(report.device_id, -1),
+            )
+            self._device_arrivals[report.device_id].append(report.received_at)
+            self._reporter_arrivals[report.reporter_id].append(report.received_at)
 
     def submit(self, submission: ReportSubmission) -> CommunityReport:
         cell_id = cell_for(submission.latitude, submission.longitude)
@@ -378,6 +417,7 @@ class CommunityEngine:
             reporter_id=submission.reporter_id,
             reporter_role=profile.role,
             device_id=submission.device_id,
+            device_counter=submission.device_counter,
             captured_at=submission.captured_at,
             received_at=submission.received_at,
             latitude=submission.latitude,

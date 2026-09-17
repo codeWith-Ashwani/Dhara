@@ -17,7 +17,12 @@
         </div>
       </div>
       <div class="mode"><span aria-hidden="true"></span> Shadow mode · no public delivery</div>
+      <label class="token-field">Operator token
+        <input id="operator-token" type="password" autocomplete="off" placeholder="Paste short-lived bearer token" />
+      </label>
+      <button id="connect" class="quiet-button" type="button">Connect</button>
       <button id="refresh" class="quiet-button" type="button">Refresh evidence</button>
+      <output id="auth-status" class="auth-status">Authentication required</output>
     </header>
 
     <main class="workspace">
@@ -99,7 +104,7 @@
               <p>Every action is appended to the audit chain. CAP and delivery remain sandbox-only.</p>
             </div>
             <div class="decision-inputs">
-              <label>Officer ID<input id="actor-id" autocomplete="off" placeholder="control-room-01" /></label>
+              <label>Authenticated officer<input id="actor-id" readonly placeholder="Connect a token" /></label>
               <label>Reason<input id="reason" autocomplete="off" placeholder="Evidence reviewed and verified" /></label>
               <label>Language
                 <select id="language">

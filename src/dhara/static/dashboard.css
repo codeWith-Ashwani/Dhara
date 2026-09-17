@@ -74,6 +74,21 @@ button { cursor: pointer; }
   background: var(--surface);
 }
 .quiet-button:hover, .quiet-button:focus-visible { border-color: var(--cyan); }
+.token-field {
+  min-width: 220px;
+  display: grid;
+  gap: 3px;
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+.token-field input {
+  min-height: 36px;
+  padding: 6px 9px;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+.auth-status { color: var(--muted); font-size: 0.74rem; }
 
 .workspace {
   min-height: calc(100vh - 72px);
@@ -247,6 +262,8 @@ button { cursor: pointer; }
 @media (max-width: 640px) {
   .topbar { flex-wrap: wrap; padding: 12px 16px; }
   .mode { order: 3; width: 100%; margin-left: 0; }
+  .token-field { order: 4; width: 100%; }
+  .auth-status { order: 5; width: 100%; }
   .quiet-button { margin-left: auto; }
   .case-pane { padding-inline: 14px; }
   .case-header { display: grid; }

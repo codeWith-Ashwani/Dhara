@@ -82,6 +82,12 @@ Sprint 3 implements these boundaries with signed canonical report payloads, an a
 
 The default cluster policy uses a 30-minute window, a 45-minute recency half-life, one contribution per device and geohash-7 sub-cell, and a minimum of four devices across three sub-cells. A verified-node report permits a sparse-zone floor of two devices across two sub-cells. The included HMAC signature, static attestation and deterministic content adapters are executable test doubles, not substitutes for hardware-backed keys, Play Integrity/App Attest, and a reviewed production vision model.
 
+Sprint 6 replaces the default in-memory report and trust stores with SQLite repositories. Every
+accepted or quarantined report, reporter Beta parameters, last activity and signed-device
+counter survive process restart. Startup reconstructs the anti-replay and rate-window state from
+the durable reports. Community evidence is append-only; reusing a report ID with different
+content fails closed. The in-memory adapters remain available for isolated unit tests.
+
 ### Fusion and governance
 
 The initial policy computes:
@@ -132,6 +138,35 @@ calibration bins. It suppresses results below five outcomes and excludes actor, 
 report, notes and private input-digest fields. Every response states whether it is synthetic or
 operational-unverified and explicitly sets `operational_performance_claim=false`.
 
+Sprint 6 adds a separate immutable authority-event ledger. Each record carries an external event
+ID, event group, cell, label, raw `S`/`R`/`F`, source reference, approving supervisor, import
+time and classification. Batch import is atomic and idempotent. Calibration assessment holds out
+one entire event group at a time so observations from one physical episode cannot appear in
+both the training and validation partitions. The promotion gate requires at least twelve samples
+from at least three event groups, a lower held-out Brier score, and a strictly positive lower
+bound from a deterministic 95% bootstrap interval. These artifacts still cannot activate alert
+policy automatically.
+
+### Operator identity and pilot control plane
+
+Operator routes accept short-lived HMAC-SHA256 gateway claims containing subject, role, issue
+time, expiry, issuer, audience and token ID. Viewer, operator and supervisor roles form an
+explicit hierarchy. Viewing evidence requires viewer access; replay/fusion and ground-request
+actions require operator access; final labels, sandbox CAP signing, authority import and learning
+jobs require supervisor access. The actor on an officer action must exactly match the signed
+subject. Tokens are a local identity-provider boundary for the prototype, not a replacement for
+OIDC, MFA or authority-managed account lifecycle.
+
+A SQLite lease permits only one active nightly-learning owner. The coordinator runs feedback
+learning, grouped held-out evaluation and audit anchoring, then releases the lease even after a
+failure. Low-cardinality counters and gauges are available in JSON and Prometheus text without
+operator, reporter, alert or cell labels.
+
+The anchor service signs the current decision- and learning-chain heads and appends the receipt
+to a separate fsynced JSONL exchange file. Receipts form their own hash chain and repeated
+unchanged heads are idempotent. This provides a verifiable export boundary for object-locked or
+transparency-log storage; the local file is not itself an independent external witness.
+
 ### Degraded-mode behavior
 
 Signature, attestation and content-classifier adapter exceptions quarantine the affected report
@@ -147,14 +182,16 @@ keeps public delivery disabled, requires CAP `Test`, and disables runtime transl
 - one FastAPI process;
 - SQLite observation store;
 - SQLite append-only decision audit ledger;
-- SQLite immutable outcome store and append-only learning ledger;
+- SQLite durable community/trust stores, immutable outcome and authority ledgers, and
+  append-only learning artifacts;
 - in-memory community report, trust and fusion state stores;
 - deterministic JSONL replay files;
 - synchronous feature computation;
 - locally served operator console;
 - in-memory sandbox delivery outboxes; no outbound delivery;
-- versioned calibration and zone-policy artifacts; no automatic policy activation outside the
-  learning repository.
+- versioned replay and grouped-held-out calibration plus zone-policy artifacts; no automatic
+  policy activation outside the learning repository;
+- signed operator claims, job leases, process metrics and an append-only anchor exchange file.
 
 This profile is intentionally runnable on a laptop and is not a production topology.
 
@@ -169,9 +206,10 @@ This profile is intentionally runnable on a laptop and is not a production topol
 - Prometheus/Grafana observability and MLflow model registry;
 - sovereign-cloud deployment with encrypted backups and audited RBAC.
 
-`infra/postgres/001_init.sql` establishes the production observation, outcome, calibration,
-zone-policy, decision-audit and learning-run table contracts without forcing contributors to
-run the full topology locally.
+`infra/postgres/001_init.sql` establishes the production observation, community, trust,
+authority-event, outcome, calibration, held-out evaluation, zone-policy, decision-audit,
+learning-run and lease table contracts without forcing contributors to run the full topology
+locally.
 
 ## Privacy and security posture
 

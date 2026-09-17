@@ -1,0 +1,214 @@
+{
+  "generated_at": "2026-09-17T19:30:00+05:30",
+  "mode": "shadow",
+  "public_delivery_enabled": false,
+  "fixture_classification": "synthetic_pilot_control_fixture",
+  "durability": {
+    "first_report_status": "accepted",
+    "report_count_before_restart": 1,
+    "report_count_after_restart": 2,
+    "trust_before_restart": 0.706841,
+    "trust_after_restart": 0.706841,
+    "replayed_counter_result": "replayed_counter",
+    "replayed_counter_failed_closed": true
+  },
+  "control_plane": {
+    "authentication": {
+      "missing_token_status": 401,
+      "viewer_write_status": 403,
+      "operator_replay_status": 200,
+      "actor_mismatch_status": 403,
+      "ephemeral_key": false
+    },
+    "authority_import": {
+      "first": {
+        "total": 16,
+        "created": 16,
+        "duplicates": 0
+      },
+      "repeat": {
+        "total": 16,
+        "created": 0,
+        "duplicates": 16
+      },
+      "event_groups": 4
+    },
+    "nightly": {
+      "status": "completed",
+      "duration_ms": 43.046,
+      "latency_objective_ms": 2000.0,
+      "learning_reused_initially": false,
+      "learning_reused_on_repeat": true,
+      "anchor_reused_initially": false,
+      "anchor_reused_on_repeat": true,
+      "evaluations": {
+        "sensor": {
+          "version": "heldout-sensor-1425eabd8110",
+          "stream": "sensor",
+          "created_at": "2026-09-17T20:30:00+05:30",
+          "input_digest": "1425eabd8110b3ab2aa732ace98622a386edae381b538a01d73c8c891fa513ab",
+          "sample_count": 16,
+          "event_group_count": 4,
+          "brier_before": 0.16,
+          "brier_after": 0.015625,
+          "mean_improvement": 0.144375,
+          "improvement_ci_low": 0.144375,
+          "improvement_ci_high": 0.144375,
+          "promoted": true,
+          "promotion_reason": "95% bootstrap interval supports held-out Brier improvement",
+          "method": "leave-one-event-group-out-laplace-bins-bootstrap95"
+        },
+        "crowd": {
+          "version": "heldout-crowd-1425eabd8110",
+          "stream": "crowd",
+          "created_at": "2026-09-17T20:30:00+05:30",
+          "input_digest": "1425eabd8110b3ab2aa732ace98622a386edae381b538a01d73c8c891fa513ab",
+          "sample_count": 16,
+          "event_group_count": 4,
+          "brier_before": 0.04,
+          "brier_after": 0.015625,
+          "mean_improvement": 0.024375,
+          "improvement_ci_low": 0.024375,
+          "improvement_ci_high": 0.024375,
+          "promoted": true,
+          "promotion_reason": "95% bootstrap interval supports held-out Brier improvement",
+          "method": "leave-one-event-group-out-laplace-bins-bootstrap95"
+        },
+        "fused": {
+          "version": "heldout-fused-1425eabd8110",
+          "stream": "fused",
+          "created_at": "2026-09-17T20:30:00+05:30",
+          "input_digest": "1425eabd8110b3ab2aa732ace98622a386edae381b538a01d73c8c891fa513ab",
+          "sample_count": 16,
+          "event_group_count": 4,
+          "brier_before": 0.34,
+          "brier_after": 0.25,
+          "mean_improvement": 0.09,
+          "improvement_ci_low": -0.06,
+          "improvement_ci_high": 0.24,
+          "promoted": false,
+          "promotion_reason": "held-out improvement is absent or statistically uncertain",
+          "method": "leave-one-event-group-out-laplace-bins-bootstrap95"
+        }
+      }
+    },
+    "public_heldout": {
+      "mode": "shadow",
+      "operational_performance_claim": false,
+      "status": "available",
+      "evaluations": {
+        "sensor": {
+          "stream": "sensor",
+          "created_at": "2026-09-17T20:30:00+05:30",
+          "sample_count": 16,
+          "event_group_count": 4,
+          "brier_before": 0.16,
+          "brier_after": 0.015625,
+          "mean_improvement": 0.144375,
+          "improvement_ci_low": 0.144375,
+          "improvement_ci_high": 0.144375,
+          "promoted": true,
+          "promotion_reason": "95% bootstrap interval supports held-out Brier improvement",
+          "method": "leave-one-event-group-out-laplace-bins-bootstrap95"
+        },
+        "crowd": {
+          "stream": "crowd",
+          "created_at": "2026-09-17T20:30:00+05:30",
+          "sample_count": 16,
+          "event_group_count": 4,
+          "brier_before": 0.04,
+          "brier_after": 0.015625,
+          "mean_improvement": 0.024375,
+          "improvement_ci_low": 0.024375,
+          "improvement_ci_high": 0.024375,
+          "promoted": true,
+          "promotion_reason": "95% bootstrap interval supports held-out Brier improvement",
+          "method": "leave-one-event-group-out-laplace-bins-bootstrap95"
+        },
+        "fused": {
+          "stream": "fused",
+          "created_at": "2026-09-17T20:30:00+05:30",
+          "sample_count": 16,
+          "event_group_count": 4,
+          "brier_before": 0.34,
+          "brier_after": 0.25,
+          "mean_improvement": 0.09,
+          "improvement_ci_low": -0.06,
+          "improvement_ci_high": 0.24,
+          "promoted": false,
+          "promotion_reason": "held-out improvement is absent or statistically uncertain",
+          "method": "leave-one-event-group-out-laplace-bins-bootstrap95"
+        }
+      }
+    },
+    "operations": {
+      "mode": "shadow",
+      "metrics": {
+        "counters": {
+          "authority_events_imported": 16.0,
+          "nightly_jobs_completed": 2.0,
+          "operator_authentication_denied": 1.0,
+          "operator_authorization_denied": 1.0
+        },
+        "gauges": {
+          "heldout_promoted_streams": 2,
+          "heldout_samples": 16
+        }
+      },
+      "decision_audit_chain_valid": true,
+      "learning_audit_chain_valid": true,
+      "anchor": {
+        "sink": "append_only_exchange_file",
+        "receipts": 1,
+        "chain_valid": true,
+        "latest": {
+          "sequence": 1,
+          "anchor_id": "0388d28b-3303-450d-84c3-d4c85d7466eb",
+          "created_at": "2026-09-17T20:30:00+05:30",
+          "decision_sequence": 0,
+          "decision_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+          "learning_sequence": 1,
+          "learning_hash": "6eb3a3d22f4a135eb3e13877f84bd250ab8b9846fe185f364fc4b5fd819a5d1b",
+          "previous_anchor_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+          "anchor_hash": "ab8bf1bd9d5af7df8f9e70addfaebb6d4d117a74b52359e7ff4526873a4b42f1",
+          "signature": "c6ce1e23729a70972cfe4690e2fd0d8fbaa143fdbb736fc3e37debf2276d38e2",
+          "key_id": "local-pilot-anchor-v1"
+        },
+        "ephemeral_key": true
+      },
+      "authentication": {
+        "enforced": true,
+        "scheme": "Bearer HMAC-SHA256 gateway claim",
+        "ephemeral_key": false,
+        "issuer": "dhara-authority-gateway",
+        "audience": "dhara-shadow-api"
+      }
+    },
+    "prometheus": [
+      "dhara_authority_events_imported_total 16",
+      "dhara_nightly_jobs_completed_total 2",
+      "dhara_operator_authentication_denied_total 1",
+      "dhara_operator_authorization_denied_total 1",
+      "dhara_heldout_promoted_streams 2",
+      "dhara_heldout_samples 16"
+    ]
+  },
+  "acceptance": {
+    "operator_authentication_required": true,
+    "viewer_write_forbidden": true,
+    "operator_replay_allowed": true,
+    "actor_identity_bound_to_token": true,
+    "report_survives_restart": true,
+    "trust_survives_restart": true,
+    "replay_counter_survives_restart": true,
+    "authority_import_idempotent": true,
+    "heldout_groups_are_separated": true,
+    "supported_calibration_promoted": true,
+    "uncertain_fused_calibration_blocked": true,
+    "nightly_job_idempotent": true,
+    "nightly_latency_within_objective": true,
+    "anchor_chain_valid": true,
+    "all_internal_chains_valid": true,
+    "public_evaluation_privacy_safe": true
+  }
+}

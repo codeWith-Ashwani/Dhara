@@ -90,6 +90,33 @@ valid, public metrics contained no report/reporter/actor identifiers, classifier
 quarantined evidence, an SMS failure did not block the other sandbox channels, and live mode
 was rejected. See [the Sprint 5 report](reports/SPRINT_05.md).
 
+## Sprint 6 - Pilot control plane and durable evidence
+
+**Status:** implemented and rehearsed with synthetic authority events. Integration with a real
+identity provider, managed scheduler, secrets manager, object-locked anchor service and
+authority-owned event ledger remains a deployment gate.
+
+Deliverables:
+
+- durable community-report and reporter-trust stores with restart-safe replay counters;
+- signed short-lived operator identities and viewer/operator/supervisor RBAC;
+- immutable, idempotent authority event-ledger import with provenance;
+- leave-one-event-group-out calibration evaluation and bootstrap uncertainty bounds;
+- single-active nightly job lease, operational metrics and signed audit-chain anchoring;
+- authenticated console token flow and full pilot-control rehearsal.
+
+Exit test: restart the community service without losing evidence, trust or anti-replay state;
+deny unauthenticated/underprivileged operator actions; ingest authority events idempotently; and
+complete one leased nightly run whose held-out, audit-anchor and privacy gates all pass.
+
+Result: passed for the prototype boundary. Community evidence and trust survived restart, a
+replayed device counter remained quarantined, missing tokens returned 401, viewer writes and
+actor mismatches returned 403, and all 16 synthetic authority rows imported exactly once across
+four event groups. The nightly control job completed in 43.046 ms, reused unchanged learning
+and anchor state on repeat, promoted two statistically supported streams, blocked the uncertain
+fused stream, emitted privacy-filtered public results, and left all three integrity chains valid.
+All 16 acceptance flags passed. See [the Sprint 6 report](reports/SPRINT_06.md).
+
 ## Definition of done for every sprint
 
 - tests cover the safety-critical invariant introduced in that sprint;

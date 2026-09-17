@@ -167,3 +167,117 @@ DROP TRIGGER IF EXISTS learning_job_runs_no_update ON learning_job_runs;
 CREATE TRIGGER learning_job_runs_no_update
 BEFORE UPDATE OR DELETE ON learning_job_runs
 FOR EACH ROW EXECUTE FUNCTION reject_learning_record_mutation();
+
+CREATE TABLE IF NOT EXISTS reporter_trust_profiles (
+    reporter_id TEXT PRIMARY KEY,
+    role TEXT NOT NULL CHECK (role IN ('anonymous', 'citizen', 'verified_node')),
+    alpha DOUBLE PRECISION NOT NULL CHECK (alpha > 0),
+    beta DOUBLE PRECISION NOT NULL CHECK (beta > 0),
+    last_activity TIMESTAMPTZ
+);
+
+CREATE TABLE IF NOT EXISTS community_reports (
+    report_id TEXT PRIMARY KEY,
+    reporter_id TEXT NOT NULL,
+    reporter_role TEXT NOT NULL,
+    device_id TEXT NOT NULL,
+    device_counter BIGINT NOT NULL CHECK (device_counter >= 0),
+    captured_at TIMESTAMPTZ NOT NULL,
+    received_at TIMESTAMPTZ NOT NULL,
+    latitude DOUBLE PRECISION NOT NULL CHECK (latitude BETWEEN -90 AND 90),
+    longitude DOUBLE PRECISION NOT NULL CHECK (longitude BETWEEN -180 AND 180),
+    h3_r9 TEXT NOT NULL,
+    geohash7 TEXT NOT NULL,
+    channel TEXT NOT NULL,
+    claimed_depth TEXT NOT NULL,
+    predicted_depth TEXT,
+    classifier_class TEXT NOT NULL,
+    classifier_confidence DOUBLE PRECISION NOT NULL,
+    trust_at_submit DOUBLE PRECISION NOT NULL,
+    geo_integrity DOUBLE PRECISION NOT NULL,
+    contribution DOUBLE PRECISION NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('accepted', 'quarantined')),
+    signature_valid BOOLEAN NOT NULL,
+    attestation_passed BOOLEAN,
+    quarantine_reason TEXT,
+    perceptual_hash TEXT
+);
+
+CREATE INDEX IF NOT EXISTS community_reports_cell_captured_idx
+    ON community_reports (h3_r9, captured_at DESC);
+CREATE INDEX IF NOT EXISTS community_reports_device_received_idx
+    ON community_reports (device_id, received_at DESC);
+
+CREATE TABLE IF NOT EXISTS authority_events (
+    authority_event_id TEXT PRIMARY KEY,
+    event_group TEXT NOT NULL,
+    h3_r9 TEXT NOT NULL,
+    observed_at TIMESTAMPTZ NOT NULL,
+    label TEXT NOT NULL CHECK (label IN ('confirmed', 'refuted')),
+    sensor_confidence DOUBLE PRECISION NOT NULL CHECK (
+        sensor_confidence BETWEEN 0 AND 1
+    ),
+    crowd_confidence DOUBLE PRECISION NOT NULL CHECK (
+        crowd_confidence BETWEEN 0 AND 1
+    ),
+    fused_confidence DOUBLE PRECISION NOT NULL CHECK (
+        fused_confidence BETWEEN 0 AND 1
+    ),
+    source_reference TEXT NOT NULL,
+    approved_by TEXT NOT NULL,
+    imported_at TIMESTAMPTZ NOT NULL,
+    data_classification TEXT NOT NULL,
+    record_digest CHAR(64) NOT NULL UNIQUE
+);
+
+CREATE INDEX IF NOT EXISTS authority_events_group_time_idx
+    ON authority_events (event_group, observed_at);
+
+CREATE TABLE IF NOT EXISTS heldout_evaluation_artifacts (
+    version TEXT PRIMARY KEY,
+    stream TEXT NOT NULL CHECK (stream IN ('sensor', 'crowd', 'fused')),
+    created_at TIMESTAMPTZ NOT NULL,
+    input_digest CHAR(64) NOT NULL,
+    sample_count INTEGER NOT NULL CHECK (sample_count > 0),
+    event_group_count INTEGER NOT NULL CHECK (event_group_count > 0),
+    brier_before DOUBLE PRECISION NOT NULL,
+    brier_after DOUBLE PRECISION NOT NULL,
+    mean_improvement DOUBLE PRECISION NOT NULL,
+    improvement_ci_low DOUBLE PRECISION NOT NULL,
+    improvement_ci_high DOUBLE PRECISION NOT NULL,
+    promoted BOOLEAN NOT NULL,
+    promotion_reason TEXT NOT NULL,
+    method TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS heldout_stream_created_idx
+    ON heldout_evaluation_artifacts (stream, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS job_leases (
+    job_name TEXT PRIMARY KEY,
+    owner_id TEXT NOT NULL,
+    acquired_at TIMESTAMPTZ NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL
+);
+
+CREATE OR REPLACE FUNCTION reject_pilot_evidence_mutation()
+RETURNS TRIGGER AS $$
+BEGIN
+    RAISE EXCEPTION 'community and authority evidence is append-only';
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS community_reports_no_update ON community_reports;
+CREATE TRIGGER community_reports_no_update
+BEFORE UPDATE OR DELETE ON community_reports
+FOR EACH ROW EXECUTE FUNCTION reject_pilot_evidence_mutation();
+
+DROP TRIGGER IF EXISTS authority_events_no_update ON authority_events;
+CREATE TRIGGER authority_events_no_update
+BEFORE UPDATE OR DELETE ON authority_events
+FOR EACH ROW EXECUTE FUNCTION reject_pilot_evidence_mutation();
+
+DROP TRIGGER IF EXISTS heldout_evaluations_no_update ON heldout_evaluation_artifacts;
+CREATE TRIGGER heldout_evaluations_no_update
+BEFORE UPDATE OR DELETE ON heldout_evaluation_artifacts
+FOR EACH ROW EXECUTE FUNCTION reject_pilot_evidence_mutation();
