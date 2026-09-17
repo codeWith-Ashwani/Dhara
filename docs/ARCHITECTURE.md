@@ -106,6 +106,40 @@ Alert text is selected from repository-versioned English, Hindi and Marathi slot
 
 Push, SMS and IVR adapters record sandbox receipts and share the exact rendered body hash. The CAP v1.2 composer always emits `status=Test`, `scope=Restricted`, and the H3-R9 area code. No network provider or SACHET transport exists in this sprint. The offline report codec uses the D.H.A.R.A. `DHR` protocol tag, flood/depth codes, geohash-8, elapsed minutes and a per-device HMAC-SHA256 truncated to ten hexadecimal characters; the complete fixture payload is 34 characters.
 
+### Outcomes and governed learning
+
+Sprint 5 closes the feedback path without allowing learning code to publish warnings. Officer
+`confirm` and `reject_as_false` actions create one immutable confirmed/refuted outcome per
+alert. The label preserves the `S`, `R`, `F`, tier, cell, evidence references, actor, source and
+timestamps used for adjudication. Repeating the same label is idempotent; attempting to replace
+it with the opposite label fails closed. SQLite and PostgreSQL triggers reject updates and
+deletes.
+
+An explicit learning job consumes the complete labelled set and hashes it into an idempotency
+key. A repeated input reuses the original hash-chained run and cannot apply reporter-trust
+updates twice. New input updates the Beta trust posterior, produces binned calibration
+candidates for `S`, `R`, and `F`, and emits a per-cell policy artifact. The policy applies a
+five-to-one miss-versus-false-alarm cost and versions its thresholds and sensor weight.
+
+Calibration artifacts are immutable even when rejected. A candidate is promoted only when at
+least five outcomes are present and its replay Brier score improves; otherwise `calibrate()`
+returns the original probability. This is a software safety gate, not evidence of field
+calibration. Pilot promotion must use authority-approved held-out events and minimum sample
+sizes substantially larger than the prototype gate.
+
+The public metrics view exposes only aggregate sample count, label totals, POD, FAR, CSI and
+calibration bins. It suppresses results below five outcomes and excludes actor, reporter,
+report, notes and private input-digest fields. Every response states whether it is synthetic or
+operational-unverified and explicitly sets `operational_performance_claim=false`.
+
+### Degraded-mode behavior
+
+Signature, attestation and content-classifier adapter exceptions quarantine the affected report
+with a specific unavailable reason and zero contribution. A delivery-adapter exception records
+a failed sandbox receipt while the remaining sandbox channels are still attempted with the
+same approved message hash. `SafetyControls` rejects every operating mode other than `shadow`,
+keeps public delivery disabled, requires CAP `Test`, and disables runtime translation.
+
 ## Runtime topology
 
 ### Local prototype
@@ -113,11 +147,14 @@ Push, SMS and IVR adapters record sandbox receipts and share the exact rendered 
 - one FastAPI process;
 - SQLite observation store;
 - SQLite append-only decision audit ledger;
+- SQLite immutable outcome store and append-only learning ledger;
 - in-memory community report, trust and fusion state stores;
 - deterministic JSONL replay files;
 - synchronous feature computation;
 - locally served operator console;
-- in-memory sandbox delivery outboxes; no outbound delivery.
+- in-memory sandbox delivery outboxes; no outbound delivery;
+- versioned calibration and zone-policy artifacts; no automatic policy activation outside the
+  learning repository.
 
 This profile is intentionally runnable on a laptop and is not a production topology.
 
@@ -132,7 +169,9 @@ This profile is intentionally runnable on a laptop and is not a production topol
 - Prometheus/Grafana observability and MLflow model registry;
 - sovereign-cloud deployment with encrypted backups and audited RBAC.
 
-`infra/postgres/001_init.sql` establishes the production observation and append-only decision-audit table contracts without forcing contributors to run the full topology locally.
+`infra/postgres/001_init.sql` establishes the production observation, outcome, calibration,
+zone-policy, decision-audit and learning-run table contracts without forcing contributors to
+run the full topology locally.
 
 ## Privacy and security posture
 

@@ -9,6 +9,7 @@ from dhara.community import CommunityEngine, CrowdAssessment, DepthOrdinal
 from dhara.delivery import DeliveryBundle, SandboxDeliveryOrchestrator
 from dhara.dossier import EvidenceDossier, EvidenceDossierBuilder, SensorEvidence
 from dhara.fusion import AlertTier, FusionDecision, FusionEngine
+from dhara.outcomes import OutcomeLabel, OutcomeRecord, OutcomeRepository
 
 
 @dataclass(frozen=True, slots=True)
@@ -50,12 +51,14 @@ class OfficerActionResult:
     case_status: str
     audit_event: AuditEvent
     delivery: DeliveryBundle | None = None
+    outcome: OutcomeRecord | None = None
 
     def to_dict(self) -> dict[str, object]:
         return {
             "case_status": self.case_status,
             "audit_event": self.audit_event.to_dict(),
             "delivery": self.delivery.to_dict() if self.delivery is not None else None,
+            "outcome": self.outcome.to_dict() if self.outcome is not None else None,
         }
 
 
@@ -68,12 +71,16 @@ class TriageService:
         audit: DecisionAuditRepository,
         templates: AlertTemplateCatalog | None = None,
         delivery: SandboxDeliveryOrchestrator | None = None,
+        outcomes: OutcomeRepository | None = None,
+        outcome_data_classification: str = "operational_unverified",
     ) -> None:
         self.community = community
         self.fusion = fusion
         self.audit_repository = audit
         self.templates = templates or AlertTemplateCatalog()
         self.delivery = delivery or SandboxDeliveryOrchestrator()
+        self.outcomes = outcomes
+        self.outcome_data_classification = outcome_data_classification
         self.dossiers = EvidenceDossierBuilder(community, fusion)
         self._cases: dict[str, AlertCase] = {}
 
@@ -149,6 +156,11 @@ class TriageService:
     ) -> OfficerActionResult:
         case = self.get_case(alert_id)
         delivery_bundle: DeliveryBundle | None = None
+        outcome_label = _outcome_for_action(action)
+        if outcome_label is not None and self.outcomes is not None:
+            existing_outcome = self.outcomes.get_for_alert(alert_id)
+            if existing_outcome is not None and existing_outcome.label is not outcome_label:
+                raise ValueError("alert already has a conflicting immutable outcome")
         status = _status_for_action(action)
         payload: dict[str, object] = {
             "previous_status": case.status,
@@ -198,11 +210,42 @@ class TriageService:
             reason=reason,
             payload=payload,
         )
+        outcome: OutcomeRecord | None = None
+        if outcome_label is not None and self.outcomes is not None:
+            report_ids = case.crowd.contributing_report_ids
+            report_id_set = set(report_ids)
+            reporter_ids = tuple(
+                sorted(
+                    {
+                        report.reporter_id
+                        for report in self.community.store.all()
+                        if report.report_id in report_id_set
+                    }
+                )
+            )
+            outcome = self.outcomes.append(
+                alert_id=alert_id,
+                cell_id=case.cell_id,
+                label=outcome_label,
+                observed_at=case.updated_at,
+                recorded_at=occurred_at,
+                actor_id=actor_id,
+                source="officer_decision",
+                notes=reason,
+                report_ids=report_ids,
+                reporter_ids=reporter_ids,
+                sensor_confidence=case.decision.sensor_confidence,
+                crowd_confidence=case.decision.crowd_confidence,
+                fused_confidence=case.decision.fused_confidence,
+                predicted_tier=case.decision.committed_tier.name.lower(),
+                data_classification=self.outcome_data_classification,
+            )
         self._cases[alert_id] = replace(case, status=status, updated_at=occurred_at)
         return OfficerActionResult(
             case_status=status,
             audit_event=event,
             delivery=delivery_bundle,
+            outcome=outcome,
         )
 
     def _center(self, cell_id: str, as_of: datetime) -> tuple[float | None, float | None]:
@@ -229,3 +272,11 @@ def _status_for_action(action: OfficerAction) -> str:
         OfficerAction.REJECT_AS_FALSE: "rejected",
         OfficerAction.ESCALATE_PUBLISH_CAP: "sandbox_dispatched",
     }[action]
+
+
+def _outcome_for_action(action: OfficerAction) -> OutcomeLabel | None:
+    if action is OfficerAction.CONFIRM:
+        return OutcomeLabel.CONFIRMED
+    if action is OfficerAction.REJECT_AS_FALSE:
+        return OutcomeLabel.REFUTED
+    return None

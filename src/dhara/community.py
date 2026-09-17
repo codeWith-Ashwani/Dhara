@@ -39,11 +39,14 @@ class ReportStatus(StrEnum):
 
 
 class QuarantineReason(StrEnum):
+    SIGNATURE_SERVICE_UNAVAILABLE = "signature_service_unavailable"
     INVALID_SIGNATURE = "invalid_signature"
+    ATTESTATION_SERVICE_UNAVAILABLE = "attestation_service_unavailable"
     ATTESTATION_FAILED = "attestation_failed"
     REPLAYED_COUNTER = "replayed_counter"
     INVALID_CAPTURE_TIME = "invalid_capture_time"
     CONTENT_MISMATCH = "content_mismatch"
+    CLASSIFIER_UNAVAILABLE = "classifier_unavailable"
     DUPLICATE_MEDIA = "duplicate_media"
     RATE_LIMITED = "rate_limited"
 
@@ -304,20 +307,39 @@ class CommunityEngine:
         cell_id = cell_for(submission.latitude, submission.longitude)
         subcell = geohash_for(submission.latitude, submission.longitude, 7)
         profile = self.trust.profile(submission.reporter_id)
-        assessment = self.classifier.classify(submission.media_reference)
+        classifier_available = True
+        try:
+            assessment = self.classifier.classify(submission.media_reference)
+        except Exception:
+            classifier_available = False
+            assessment = ContentAssessment("unavailable", 0.0, None, None)
         trust_value = self.trust.trust(submission.reporter_id, as_of=submission.received_at)
         geo_integrity = _geo_integrity(submission)
 
         reason: QuarantineReason | None = None
-        signature_valid = self.signatures.verify(submission)
+        signature_available = True
+        try:
+            signature_valid = self.signatures.verify(submission)
+        except Exception:
+            signature_available = False
+            signature_valid = False
         attestation_required = submission.channel in {ReportChannel.APP, ReportChannel.NODE}
-        attestation_passed = (
-            self.attestation.verify(submission.device_id, submission.attestation_token)
-            if attestation_required
-            else None
-        )
-        if not signature_valid:
+        attestation_available = True
+        try:
+            attestation_passed = (
+                self.attestation.verify(submission.device_id, submission.attestation_token)
+                if attestation_required
+                else None
+            )
+        except Exception:
+            attestation_available = False
+            attestation_passed = False
+        if not signature_available:
+            reason = QuarantineReason.SIGNATURE_SERVICE_UNAVAILABLE
+        elif not signature_valid:
             reason = QuarantineReason.INVALID_SIGNATURE
+        elif attestation_required and not attestation_available:
+            reason = QuarantineReason.ATTESTATION_SERVICE_UNAVAILABLE
         elif attestation_required and not attestation_passed:
             reason = QuarantineReason.ATTESTATION_FAILED
         elif submission.device_counter <= self._device_counters.get(submission.device_id, -1):
@@ -327,6 +349,8 @@ class CommunityEngine:
             or submission.captured_at < submission.received_at - timedelta(hours=6)
         ):
             reason = QuarantineReason.INVALID_CAPTURE_TIME
+        elif not classifier_available:
+            reason = QuarantineReason.CLASSIFIER_UNAVAILABLE
         elif submission.channel in {ReportChannel.APP, ReportChannel.NODE} and (
             assessment.hazard_class not in _FLOOD_CLASSES
             or assessment.confidence < self.policy.minimum_classifier_confidence

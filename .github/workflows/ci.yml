@@ -19,3 +19,4 @@ jobs:
       - run: python -m pip install -e ".[dev]"
       - run: ruff check .
       - run: pytest --cov=dhara --cov-report=term-missing
+      - run: python scripts/run_sprint5_pilot_rehearsal.py --output .pytest_tmp/sprint5.json

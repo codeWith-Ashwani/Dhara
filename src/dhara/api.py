@@ -19,13 +19,17 @@ from dhara.community import (
     ReportSubmission,
 )
 from dhara.connectors import NormalisationError
+from dhara.delivery import SandboxDeliveryOrchestrator
 from dhara.dossier import SensorEvidence
 from dhara.features import build_feature_snapshot
 from dhara.fusion import FusionEngine
 from dhara.ingestion import IngestionService
+from dhara.learning import LearningRepository, LearningService
 from dhara.operations import TriageService
+from dhara.outcomes import OutcomeRepository
 from dhara.replay import replay_file
 from dhara.repository import ObservationRepository
+from dhara.safety import SafetyControls
 from dhara.sensor_dataset import SensorDatasetError, feature_vector
 from dhara.sensor_models import SensorEnsemble
 
@@ -95,6 +99,10 @@ class OfficerActionRequest(BaseModel):
     valid_until: datetime
 
 
+class LearningRunRequest(BaseModel):
+    as_of: datetime
+
+
 def create_app(
     database_path: str | Path | None = None,
     replay_root: str | Path | None = None,
@@ -103,6 +111,9 @@ def create_app(
     community_engine: CommunityEngine | None = None,
     fusion_engine: FusionEngine | None = None,
     audit_repository: DecisionAuditRepository | None = None,
+    outcome_repository: OutcomeRepository | None = None,
+    learning_repository: LearningRepository | None = None,
+    safety_controls: SafetyControls | None = None,
     triage_service: TriageService | None = None,
 ) -> FastAPI:
     resolved_path = database_path or os.getenv("DHARA_DATABASE_PATH", "var/dhara.db")
@@ -117,7 +128,7 @@ def create_app(
         loaded_sensor_model = SensorEnsemble.load(configured_model_path)
     application = FastAPI(
         title="D.H.A.R.A. API",
-        version="0.4.0",
+        version="0.5.0",
         description="Shadow-mode dual-loop decision support for urban flood early warning.",
     )
     application.state.repository = repository
@@ -125,13 +136,28 @@ def create_app(
     application.state.sensor_model = loaded_sensor_model
     application.state.community_engine = community_engine or CommunityEngine()
     application.state.fusion_engine = fusion_engine or FusionEngine()
+    application.state.safety_controls = safety_controls or SafetyControls.from_environment()
     application.state.audit_repository = audit_repository or DecisionAuditRepository(
         resolved_path
     )
+    application.state.outcome_repository = outcome_repository or OutcomeRepository(
+        resolved_path
+    )
+    application.state.learning_repository = learning_repository or LearningRepository(
+        resolved_path
+    )
+    application.state.learning_service = LearningService(
+        outcomes=application.state.outcome_repository,
+        trust=application.state.community_engine.trust,
+        repository=application.state.learning_repository,
+    )
+    delivery = SandboxDeliveryOrchestrator(safety=application.state.safety_controls)
     application.state.triage_service = triage_service or TriageService(
         community=application.state.community_engine,
         fusion=application.state.fusion_engine,
         audit=application.state.audit_repository,
+        outcomes=application.state.outcome_repository,
+        delivery=delivery,
     )
     static_root = Path(__file__).with_name("static")
     application.mount("/static", StaticFiles(directory=static_root), name="static")
@@ -142,7 +168,16 @@ def create_app(
 
     @application.get("/health")
     def health() -> dict[str, object]:
-        return {"status": "ok", "mode": "shadow", "observations": repository.count()}
+        return {
+            "status": "ok",
+            "mode": "shadow",
+            "observations": repository.count(),
+            "public_delivery_enabled": False,
+        }
+
+    @application.get("/v1/safety")
+    def safety_status() -> dict[str, object]:
+        return application.state.safety_controls.to_dict()
 
     @application.post("/v1/observations", status_code=202)
     def ingest(envelope: ProviderEnvelope) -> dict[str, object]:
@@ -308,6 +343,44 @@ def create_app(
         except ValueError as exc:
             raise HTTPException(status_code=409, detail=str(exc)) from exc
         return result.to_dict()
+
+    @application.get("/v1/outcomes")
+    def outcomes() -> list[dict[str, object]]:
+        return [
+            item.to_dict(include_reporters=False)
+            for item in application.state.outcome_repository.all()
+        ]
+
+    @application.post("/v1/learning/run")
+    def run_learning(request: LearningRunRequest) -> dict[str, object]:
+        if request.as_of.utcoffset() is None:
+            raise HTTPException(status_code=422, detail="as_of must include a timezone")
+        try:
+            run, reused = application.state.learning_service.run(as_of=request.as_of)
+        except ValueError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        return run.to_dict(reused=reused)
+
+    @application.get("/v1/learning/status")
+    def learning_status() -> dict[str, object]:
+        learning_repository = application.state.learning_repository
+        run = learning_repository.latest_run()
+        return {
+            "latest_run": run.to_dict() if run is not None else None,
+            "audit_chain_valid": learning_repository.verify_run_chain(),
+            "mode": "shadow",
+        }
+
+    @application.get("/v1/public/calibration")
+    def public_calibration() -> dict[str, object]:
+        return application.state.learning_service.public_metrics()
+
+    @application.get("/v1/zone-policy/{cell_id}")
+    def zone_policy(cell_id: str) -> dict[str, object]:
+        policy = application.state.learning_repository.latest_zone_policy(cell_id)
+        if policy is None:
+            raise HTTPException(status_code=404, detail="zone policy not found")
+        return policy.to_dict()
 
     return application
 

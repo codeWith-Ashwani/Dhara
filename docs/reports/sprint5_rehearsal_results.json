@@ -1,0 +1,254 @@
+{
+  "generated_at": "2026-09-17T19:30:00+05:30",
+  "mode": "shadow",
+  "public_delivery_enabled": false,
+  "replay_performance": {
+    "fixture_classification": "synthetic_contract_fixture",
+    "records": 18,
+    "first_created": 18,
+    "subsequent_duplicates": 432,
+    "repository_records": 18,
+    "runs": 25,
+    "p50_ms": 13.259,
+    "p95_ms": 15.002,
+    "max_ms": 15.529,
+    "latency_objective_ms": 500.0,
+    "feature_snapshot_sha256": "282f35a91a881db951200acfa443082c4aa33669324303916a448f5188321312",
+    "all_rejected": 0
+  },
+  "learning": {
+    "outcomes": 8,
+    "job_id": "3328b312-cb4f-473d-a968-4e67e61fa466",
+    "job_reused_initially": false,
+    "repeat_job_id": "3328b312-cb4f-473d-a968-4e67e61fa466",
+    "repeat_was_reused": true,
+    "learning_duration_ms": 5.603,
+    "learning_latency_objective_ms": 2000.0,
+    "trust": {
+      "trusted_before": 0.276393,
+      "trusted_after": 0.554567,
+      "noisy_before": 0.276393,
+      "noisy_after": 0.105662,
+      "unchanged_on_repeat": true
+    },
+    "calibration": {
+      "sensor": {
+        "version": "cal-sensor-8653d6126d23",
+        "brier_before": 0.209063,
+        "brier_after": 0.140625,
+        "promoted": true,
+        "promotion_reason": "candidate improved replay Brier score",
+        "bins": 4
+      },
+      "crowd": {
+        "version": "cal-crowd-8653d6126d23",
+        "brier_before": 0.21071,
+        "brier_after": 0.177014,
+        "promoted": true,
+        "promotion_reason": "candidate improved replay Brier score",
+        "bins": 4
+      },
+      "fused": {
+        "version": "cal-fused-8653d6126d23",
+        "brier_before": 0.214198,
+        "brier_after": 0.223889,
+        "promoted": false,
+        "promotion_reason": "candidate retained for audit; promotion gate not met",
+        "bins": 4
+      }
+    },
+    "zone_policy": {
+      "version": "zone-4864a92126d4",
+      "cell_id": "8960885016bffff",
+      "created_at": "2026-09-17T20:30:00+05:30",
+      "input_digest": "8653d6126d2369b4472464660b72cb26c2f28a2f8efa86a91530642d21eeeb9a",
+      "sample_count": 8,
+      "false_alarms": 2,
+      "misses": 1,
+      "miss_cost": 5.0,
+      "false_alarm_cost": 1.0,
+      "sensor_weight": 0.607278,
+      "corroboration_bonus": 0.15,
+      "advisory_threshold": 0.33875,
+      "watch_threshold": 0.53875,
+      "warning_threshold": 0.73875
+    },
+    "public_metrics": {
+      "mode": "shadow",
+      "operational_performance_claim": false,
+      "sample_size": 8,
+      "minimum_public_sample_size": 5,
+      "status": "available",
+      "suppressed": false,
+      "data_classification": "synthetic",
+      "confirmed": 4,
+      "refuted": 4,
+      "probability_of_detection": 0.75,
+      "false_alarm_ratio": 0.4,
+      "critical_success_index": 0.5,
+      "calibration": {
+        "sensor": {
+          "version": "cal-sensor-8653d6126d23",
+          "stream": "sensor",
+          "created_at": "2026-09-17T20:30:00+05:30",
+          "sample_count": 8,
+          "brier_before": 0.209063,
+          "brier_after": 0.140625,
+          "promoted": true,
+          "promotion_reason": "candidate improved replay Brier score",
+          "bins": [
+            {
+              "lower": 0.2,
+              "upper": 0.4,
+              "count": 2,
+              "positives": 0,
+              "mean_prediction": 0.25,
+              "calibrated_probability": 0.25
+            },
+            {
+              "lower": 0.4,
+              "upper": 0.6,
+              "count": 1,
+              "positives": 1,
+              "mean_prediction": 0.4,
+              "calibrated_probability": 0.666667
+            },
+            {
+              "lower": 0.6,
+              "upper": 0.8,
+              "count": 1,
+              "positives": 0,
+              "mean_prediction": 0.7,
+              "calibrated_probability": 0.333333
+            },
+            {
+              "lower": 0.8,
+              "upper": 1.0,
+              "count": 4,
+              "positives": 3,
+              "mean_prediction": 0.8625,
+              "calibrated_probability": 0.666667
+            }
+          ]
+        },
+        "crowd": {
+          "version": "cal-crowd-8653d6126d23",
+          "stream": "crowd",
+          "created_at": "2026-09-17T20:30:00+05:30",
+          "sample_count": 8,
+          "brier_before": 0.21071,
+          "brier_after": 0.177014,
+          "promoted": true,
+          "promotion_reason": "candidate improved replay Brier score",
+          "bins": [
+            {
+              "lower": 0.0,
+              "upper": 0.2,
+              "count": 1,
+              "positives": 0,
+              "mean_prediction": 0.1,
+              "calibrated_probability": 0.333333
+            },
+            {
+              "lower": 0.2,
+              "upper": 0.4,
+              "count": 2,
+              "positives": 1,
+              "mean_prediction": 0.25,
+              "calibrated_probability": 0.5
+            },
+            {
+              "lower": 0.6,
+              "upper": 0.8,
+              "count": 3,
+              "positives": 1,
+              "mean_prediction": 0.7,
+              "calibrated_probability": 0.4
+            },
+            {
+              "lower": 0.8,
+              "upper": 1.0,
+              "count": 2,
+              "positives": 2,
+              "mean_prediction": 0.812418,
+              "calibrated_probability": 0.75
+            }
+          ]
+        },
+        "fused": {
+          "version": "cal-fused-8653d6126d23",
+          "stream": "fused",
+          "created_at": "2026-09-17T20:30:00+05:30",
+          "sample_count": 8,
+          "brier_before": 0.214198,
+          "brier_after": 0.223889,
+          "promoted": false,
+          "promotion_reason": "candidate retained for audit; promotion gate not met",
+          "bins": [
+            {
+              "lower": 0.0,
+              "upper": 0.2,
+              "count": 1,
+              "positives": 0,
+              "mean_prediction": 0.15,
+              "calibrated_probability": 0.333333
+            },
+            {
+              "lower": 0.2,
+              "upper": 0.4,
+              "count": 2,
+              "positives": 1,
+              "mean_prediction": 0.3,
+              "calibrated_probability": 0.5
+            },
+            {
+              "lower": 0.6,
+              "upper": 0.8,
+              "count": 2,
+              "positives": 1,
+              "mean_prediction": 0.74,
+              "calibrated_probability": 0.5
+            },
+            {
+              "lower": 0.8,
+              "upper": 1.0,
+              "count": 3,
+              "positives": 2,
+              "mean_prediction": 0.85492,
+              "calibrated_probability": 0.6
+            }
+          ]
+        }
+      }
+    },
+    "decision_audit_chain_valid": true,
+    "learning_audit_chain_valid": true
+  },
+  "chaos_and_security": {
+    "classifier_outage_result": "classifier_unavailable",
+    "classifier_failed_closed": true,
+    "delivery_statuses": [
+      "sandbox_recorded",
+      "sandbox_failed",
+      "sandbox_recorded"
+    ],
+    "remaining_channels_attempted": true,
+    "message_hashes_match": true,
+    "live_mode_rejected": true
+  },
+  "acceptance": {
+    "complete_replay_idempotent": true,
+    "replay_p95_within_objective": true,
+    "trust_changed_from_labels": true,
+    "calibration_versions_created": true,
+    "improving_calibration_promoted": true,
+    "unsafe_fused_calibration_not_promoted": true,
+    "zone_policy_version_created": true,
+    "learning_job_idempotent": true,
+    "learning_job_audited": true,
+    "public_metrics_privacy_safe": true,
+    "classifier_outage_failed_closed": true,
+    "channel_outage_degraded_gracefully": true,
+    "shadow_mode_hard_lock": true
+  }
+}

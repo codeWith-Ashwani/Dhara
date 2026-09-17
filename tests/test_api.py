@@ -184,6 +184,31 @@ def test_community_reports_feed_governed_fusion(tmp_path: Path, community_harnes
                 "valid_until": "2026-09-17T20:30:00+05:30",
             },
         )
+        confirm = client.post(
+            f"/v1/alerts/{alert_id}/actions",
+            json={
+                "action": "confirm",
+                "actor_id": "api-officer",
+                "reason": "Ward team confirmed waterlogging",
+                "language": "en-IN",
+                "place": "Ward 14",
+                "road": "River Road",
+                "depth": "knee",
+                "valid_until": "2026-09-17T20:30:00+05:30",
+            },
+        )
+        outcomes = client.get("/v1/outcomes")
+        learning = client.post(
+            "/v1/learning/run",
+            json={"as_of": "2026-09-17T21:00:00+05:30"},
+        )
+        learning_repeat = client.post(
+            "/v1/learning/run",
+            json={"as_of": "2026-09-17T21:05:00+05:30"},
+        )
+        learning_status = client.get("/v1/learning/status")
+        public_metrics = client.get("/v1/public/calibration")
+        safety = client.get("/v1/safety")
         audit = client.get(f"/v1/alerts/{alert_id}/audit")
 
     assert first.status_code == 200
@@ -199,4 +224,15 @@ def test_community_reports_feed_governed_fusion(tmp_path: Path, community_harnes
     assert len(dossier.json()["panels"]) == 6
     assert action.status_code == 200
     assert len(action.json()["delivery"]["receipts"]) == 3
+    assert confirm.status_code == 200
+    assert confirm.json()["outcome"]["label"] == "confirmed"
+    assert len(outcomes.json()) == 1
+    assert "reporter_ids" not in outcomes.json()[0]
+    assert "actor_id" not in outcomes.json()[0]
+    assert learning.status_code == 200
+    assert learning.json()["reused"] is False
+    assert learning_repeat.json()["reused"] is True
+    assert learning_status.json()["audit_chain_valid"] is True
+    assert public_metrics.json()["suppressed"] is True
+    assert safety.json()["public_delivery_enabled"] is False
     assert audit.json()["chain_valid"] is True

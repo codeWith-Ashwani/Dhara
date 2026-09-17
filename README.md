@@ -8,7 +8,8 @@ The prototype deliberately targets one hazard: urban and peri-urban flooding in 
 
 ## What exists today
 
-Sprints 1 through 4 provide the ingestion spine, both evidence loops, and the shadow-mode operator workflow:
+Sprints 1 through 5 provide the ingestion spine, both evidence loops, the shadow-mode
+operator workflow, and an audited outcome-learning cycle:
 
 - provider adapters for IMD rainfall, CWC gauges, ULB pump telemetry and Flood Hub probability snapshots;
 - range, timestamp, location, unit and staleness quality checks;
@@ -30,7 +31,15 @@ Sprints 1 through 4 provide the ingestion spine, both evidence loops, and the sh
 - hash-chained, database-enforced append-only officer decisions;
 - controlled English, Hindi and Marathi alert templates;
 - sandbox push, SMS and IVR adapters plus CAP v1.2 `Test` messages;
-- a signed, one-segment offline SMS report codec.
+- a signed, one-segment offline SMS report codec;
+- immutable confirmed/refuted outcome capture from officer decisions;
+- idempotent learning jobs that update reporter trust, calibration candidates, and
+  cost-weighted zone policy;
+- calibration promotion gates that keep a candidate audit-only when its replay Brier
+  score does not improve;
+- privacy-filtered public calibration metrics with small-sample suppression;
+- hard shadow-mode controls and fail-closed classifier, signature, and attestation paths;
+- a load/chaos/privacy rehearsal and operator runbook.
 
 The fixture is synthetic and clearly labelled. It proves the pipeline contract; it is not presented as historical ground truth.
 
@@ -47,6 +56,7 @@ python scripts/build_synthetic_sensor_fixture.py
 dhara train-loop-a data/training/synthetic_sensor_episodes.csv
 python scripts/run_sprint3_adversarial_demo.py
 python scripts/run_sprint4_acceptance_demo.py
+python scripts/run_sprint5_pilot_rehearsal.py
 uvicorn dhara.api:app --reload
 ```
 
@@ -67,6 +77,12 @@ Useful endpoints:
 - `GET /v1/alerts/{alert_id}/dossier`
 - `POST /v1/alerts/{alert_id}/actions`
 - `GET /v1/alerts/{alert_id}/audit`
+- `GET /v1/safety`
+- `GET /v1/outcomes`
+- `POST /v1/learning/run`
+- `GET /v1/learning/status`
+- `GET /v1/public/calibration`
+- `GET /v1/zone-policy/{cell_id}`
 
 Run the checks:
 
@@ -77,7 +93,10 @@ ruff check .
 
 ## Delivery plan
 
-The sprint plan, acceptance criteria, and current status live in [docs/SPRINTS.md](docs/SPRINTS.md). The component boundaries and deployment evolution are in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+The sprint plan, acceptance criteria, and current status live in
+[docs/SPRINTS.md](docs/SPRINTS.md). The component boundaries and deployment evolution
+are in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Operational rehearsal and recovery
+steps are in [docs/OPERATOR_RUNBOOK.md](docs/OPERATOR_RUNBOOK.md).
 
 ## Safety boundary
 

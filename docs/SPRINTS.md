@@ -67,6 +67,10 @@ Result: passed for the prototype boundary. A deterministic Warning produces six 
 
 ## Sprint 5 - Learning loop and pilot hardening
 
+**Status:** implemented and rehearsed in shadow mode with synthetic labels. Authority-owned
+ground truth, an approved evaluation protocol, RBAC, external audit anchoring and production
+provider integrations remain pilot gates.
+
 Deliverables:
 
 - confirmed/refuted outcome capture;
@@ -76,6 +80,15 @@ Deliverables:
 - operator runbook, shadow-mode controls and demo rehearsal.
 
 Exit test: injecting labelled outcomes changes trust/calibration through an audited job, while a complete historical replay meets latency and reliability objectives.
+
+Result: passed for the prototype boundary. Eight labelled synthetic outcomes changed trusted
+and noisy reporter scores in the expected directions; three calibration candidates were stored,
+two improving candidates were promoted and the degrading fused candidate was retained without
+promotion. The 48-hour replay completed 25 times with zero rejects and a 15.002 ms observed
+p95 against a 500 ms local objective. The learning job was idempotent, both audit chains were
+valid, public metrics contained no report/reporter/actor identifiers, classifier failure
+quarantined evidence, an SMS failure did not block the other sandbox channels, and live mode
+was rejected. See [the Sprint 5 report](reports/SPRINT_05.md).
 
 ## Definition of done for every sprint
 

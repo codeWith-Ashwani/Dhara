@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 from enum import StrEnum
 
 from dhara.alert_templates import RenderedAlert
+from dhara.safety import SafetyControls
 
 CAP_NAMESPACE = "urn:oasis:names:tc:emergency:cap:1.2"
 ET.register_namespace("", CAP_NAMESPACE)
@@ -115,11 +116,13 @@ class SandboxDeliveryOrchestrator:
         self,
         adapters: tuple[SandboxDeliveryAdapter, ...] | None = None,
         cap_composer: CapV12Composer | None = None,
+        safety: SafetyControls | None = None,
     ) -> None:
         self.adapters = adapters or tuple(
             SandboxDeliveryAdapter(channel) for channel in DeliveryChannel
         )
         self.cap_composer = cap_composer or CapV12Composer()
+        self.safety = safety or SafetyControls.from_environment()
 
     def send_all(
         self,
@@ -132,11 +135,23 @@ class SandboxDeliveryOrchestrator:
         area_description: str,
         message: RenderedAlert,
     ) -> DeliveryBundle:
+        self.safety.assert_sandbox_delivery()
         if message.approval_scope != "sandbox_only":
             raise ValueError("only sandbox-scoped templates may use sandbox delivery")
-        receipts = tuple(
-            adapter.send(alert_id, recipient, message.body) for adapter in self.adapters
-        )
+        receipts: list[DeliveryReceipt] = []
+        for adapter in self.adapters:
+            try:
+                receipt = adapter.send(alert_id, recipient, message.body)
+            except Exception:
+                receipt = DeliveryReceipt(
+                    channel=adapter.channel,
+                    status="sandbox_failed",
+                    recipient=recipient,
+                    message_sha256=hashlib.sha256(message.body.encode("utf-8")).hexdigest(),
+                    body=message.body,
+                    provider_reference=f"sandbox:{adapter.channel.value}:{alert_id}:failed",
+                )
+            receipts.append(receipt)
         cap_xml = self.cap_composer.compose(
             alert_id=alert_id,
             sender=sender,
@@ -145,7 +160,7 @@ class SandboxDeliveryOrchestrator:
             area_description=area_description,
             message=message,
         )
-        return DeliveryBundle(message=message, receipts=receipts, cap_xml=cap_xml)
+        return DeliveryBundle(message=message, receipts=tuple(receipts), cap_xml=cap_xml)
 
 
 def _cap(name: str) -> str:
