@@ -1,0 +1,41 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "dhara-early-warning"
+version = "0.1.0"
+description = "D.H.A.R.A. dual-loop flood early-warning prototype"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.115,<1",
+  "h3>=4.1,<5",
+  "pydantic>=2.9,<3",
+  "uvicorn[standard]>=0.30,<1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "httpx>=0.27,<1",
+  "pytest>=8.3,<9",
+  "pytest-cov>=5,<7",
+  "ruff>=0.7,<1",
+]
+
+[project.scripts]
+dhara = "dhara.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/dhara"]
+
+[tool.pytest.ini_options]
+addopts = "-q --strict-markers --basetemp=tmp/pytest"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
