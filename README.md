@@ -8,7 +8,7 @@ The prototype deliberately targets one hazard: urban and peri-urban flooding in 
 
 ## What exists today
 
-Sprints 1 and 2 provide the ingestion spine and the first shadow-mode instrument loop:
+Sprints 1 through 3 provide the ingestion spine and both shadow-mode evidence loops:
 
 - provider adapters for IMD rainfall, CWC gauges, ULB pump telemetry and Flood Hub probability snapshots;
 - range, timestamp, location, unit and staleness quality checks;
@@ -17,10 +17,14 @@ Sprints 1 and 2 provide the ingestion spine and the first shadow-mode instrument
 - 1/3/6/24/72-hour rainfall features plus river-stage trend, pump state and forecast-risk features;
 - a deterministic 48-hour Pune Ward 14 replay fixture;
 - FastAPI endpoints and a `dhara` command-line replay tool;
-- automated tests and GitHub Actions CI.
+- automated tests and GitHub Actions CI;
 - a normal-only reconstruction model, calibrated gradient-boosted precursor model and calibrated trend surrogate;
 - fused sensor confidence `S`, signed feature attribution and versioned model artifacts;
-- leave-one-event-out Brier, POD, FAR, CSI and reliability evaluation.
+- leave-one-event-out Brier, POD, FAR, CSI and reliability evaluation;
+- signed and attested community-report intake with content, replay, duplicate and rate gates;
+- conservative Beta-posterior reporter trust, recency weighting and spatial-spread controls;
+- crowd confidence `R` plus governed `S`/`R` fusion, divergence and hysteresis;
+- a dual-stream Warning gate that still requires authorised officer sign-off.
 
 The fixture is synthetic and clearly labelled. It proves the pipeline contract; it is not presented as historical ground truth.
 
@@ -35,6 +39,7 @@ python -m pip install -e ".[dev]"
 dhara replay data/replays/pune_ward14_48h.jsonl --database var/dhara.db
 python scripts/build_synthetic_sensor_fixture.py
 dhara train-loop-a data/training/synthetic_sensor_episodes.csv
+python scripts/run_sprint3_adversarial_demo.py
 uvicorn dhara.api:app --reload
 ```
 
@@ -47,6 +52,9 @@ Useful endpoints:
 - `GET /v1/observations?cell_id=...`
 - `GET /v1/features/{cell_id}`
 - `POST /v1/replays` (operator-only prototype endpoint; paths are confined to `data/replays`)
+- `POST /v1/reports/community`
+- `GET /v1/crowd/{cell_id}`
+- `POST /v1/fusion/evaluate`
 
 Run the checks:
 

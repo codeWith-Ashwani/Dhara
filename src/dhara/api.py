@@ -9,8 +9,15 @@ from typing import Any
 from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel, Field
 
+from dhara.community import (
+    CommunityEngine,
+    DepthOrdinal,
+    ReportChannel,
+    ReportSubmission,
+)
 from dhara.connectors import NormalisationError
 from dhara.features import build_feature_snapshot
+from dhara.fusion import FusionEngine
 from dhara.ingestion import IngestionService
 from dhara.replay import replay_file
 from dhara.repository import ObservationRepository
@@ -41,11 +48,37 @@ class SensorFeatures(BaseModel):
     flagged_observation_count: float = Field(ge=0)
 
 
+class CommunityReportRequest(BaseModel):
+    report_id: str = Field(min_length=1, max_length=100)
+    reporter_id: str = Field(min_length=1, max_length=100)
+    device_id: str = Field(min_length=1, max_length=100)
+    device_counter: int = Field(ge=0)
+    captured_at: datetime
+    received_at: datetime
+    latitude: float = Field(ge=-90, le=90)
+    longitude: float = Field(ge=-180, le=180)
+    gps_accuracy_m: float = Field(ge=0)
+    channel: ReportChannel
+    claimed_depth: DepthOrdinal
+    media_reference: str | None = Field(default=None, max_length=500)
+    attestation_token: str | None = Field(default=None, max_length=500)
+    signature: str = Field(min_length=1, max_length=500)
+
+
+class FusionEvaluationRequest(BaseModel):
+    cell_id: str = Field(min_length=15, max_length=15)
+    sensor_confidence: float = Field(ge=0, le=1)
+    as_of: datetime
+    sparse_zone: bool = False
+
+
 def create_app(
     database_path: str | Path | None = None,
     replay_root: str | Path | None = None,
     sensor_model: SensorEnsemble | None = None,
     sensor_model_path: str | Path | None = None,
+    community_engine: CommunityEngine | None = None,
+    fusion_engine: FusionEngine | None = None,
 ) -> FastAPI:
     resolved_path = database_path or os.getenv("DHARA_DATABASE_PATH", "var/dhara.db")
     resolved_replay_root = Path(
@@ -59,12 +92,14 @@ def create_app(
         loaded_sensor_model = SensorEnsemble.load(configured_model_path)
     application = FastAPI(
         title="D.H.A.R.A. API",
-        version="0.2.0",
-        description="Shadow-mode ingestion and replay spine for urban flood early warning.",
+        version="0.3.0",
+        description="Shadow-mode dual-loop decision support for urban flood early warning.",
     )
     application.state.repository = repository
     application.state.ingestion = ingestion
     application.state.sensor_model = loaded_sensor_model
+    application.state.community_engine = community_engine or CommunityEngine()
+    application.state.fusion_engine = fusion_engine or FusionEngine()
 
     @application.get("/health")
     def health() -> dict[str, object]:
@@ -128,6 +163,43 @@ def create_app(
         except SensorDatasetError as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
         return model.predict(vector)[0].to_dict()
+
+    @application.post("/v1/reports/community", status_code=202)
+    def submit_community_report(request: CommunityReportRequest) -> dict[str, object]:
+        if request.captured_at.utcoffset() is None or request.received_at.utcoffset() is None:
+            raise HTTPException(status_code=422, detail="report timestamps must include a timezone")
+        submission = ReportSubmission(**request.model_dump())
+        return application.state.community_engine.submit(submission).to_dict()
+
+    @application.get("/v1/crowd/{cell_id}")
+    def crowd_risk(
+        cell_id: str,
+        as_of: datetime,
+        sparse_zone: bool = False,
+    ) -> dict[str, object]:
+        if as_of.utcoffset() is None:
+            raise HTTPException(status_code=422, detail="as_of must include a timezone")
+        return application.state.community_engine.crowd_confidence(
+            cell_id,
+            as_of=as_of,
+            sparse_zone=sparse_zone,
+        ).to_dict()
+
+    @application.post("/v1/fusion/evaluate")
+    def evaluate_fusion(request: FusionEvaluationRequest) -> dict[str, object]:
+        if request.as_of.utcoffset() is None:
+            raise HTTPException(status_code=422, detail="as_of must include a timezone")
+        crowd = application.state.community_engine.crowd_confidence(
+            request.cell_id,
+            as_of=request.as_of,
+            sparse_zone=request.sparse_zone,
+        )
+        decision = application.state.fusion_engine.evaluate(
+            request.cell_id,
+            sensor_confidence=request.sensor_confidence,
+            crowd_confidence=crowd.crowd_confidence,
+        )
+        return {"crowd": crowd.to_dict(), "fusion": decision.to_dict()}
 
     return application
 

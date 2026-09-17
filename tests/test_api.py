@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import asdict
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -22,6 +23,15 @@ def _payload() -> dict[str, object]:
             "rainfall_mm_15m": 12.5,
         },
     }
+
+
+def _community_payload(submission) -> dict[str, object]:
+    payload = asdict(submission)
+    payload["captured_at"] = submission.captured_at.isoformat()
+    payload["received_at"] = submission.received_at.isoformat()
+    payload["channel"] = submission.channel.value
+    payload["claimed_depth"] = submission.claimed_depth.value
+    return payload
 
 
 def test_observation_api_is_idempotent_and_exposes_features(tmp_path: Path) -> None:
@@ -117,3 +127,46 @@ def test_loop_a_inference_fails_closed_without_a_model(tmp_path: Path) -> None:
         response = client.post("/v1/risk/sensor", json=payload)
     assert response.status_code == 503
     assert response.json()["detail"] == "Loop A model is not loaded"
+
+
+def test_community_reports_feed_governed_fusion(tmp_path: Path, community_harness) -> None:
+    app = create_app(
+        tmp_path / "api.db",
+        replay_root=REPLAY_ROOT,
+        community_engine=community_harness.engine,
+    )
+    reporters = ("verified-1", "citizen-2", "citizen-3", "citizen-4")
+    with TestClient(app) as client:
+        responses = []
+        for index, (reporter, location) in enumerate(
+            zip(reporters, community_harness.locations, strict=True),
+            start=1,
+        ):
+            submission = community_harness.submission(
+                report_id=f"api-legit-{index}",
+                reporter_id=reporter,
+                device_id=f"device-{index}",
+                counter=1,
+                location=location,
+                media_reference=f"legit-{index}",
+                minutes_ago=index,
+            )
+            responses.append(
+                client.post("/v1/reports/community", json=_community_payload(submission))
+            )
+
+        assert all(response.status_code == 202 for response in responses)
+        cell_id = responses[0].json()["cell_id"]
+        request = {
+            "cell_id": cell_id,
+            "sensor_confidence": 0.95,
+            "as_of": community_harness.now.isoformat(),
+        }
+        first = client.post("/v1/fusion/evaluate", json=request)
+        second = client.post("/v1/fusion/evaluate", json=request)
+
+    assert first.status_code == 200
+    assert first.json()["crowd"]["gate_satisfied"] is True
+    assert first.json()["fusion"]["committed_tier"] == "monitor"
+    assert second.json()["fusion"]["committed_tier"] == "warning"
+    assert second.json()["fusion"]["requires_officer_signoff"] is True

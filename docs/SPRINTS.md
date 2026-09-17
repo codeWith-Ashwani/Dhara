@@ -34,6 +34,8 @@ Exit test for the software path: leave-one-event-out evaluation produces version
 
 ## Sprint 3 - Community loop and governed fusion
 
+**Status:** implemented in shadow mode with deterministic prototype adapters and adversarial replay. Production device attestation, hardware-backed keys and a durable report store remain pilot integrations.
+
 Deliverables:
 
 - signed report intake and attestation interface;
@@ -44,6 +46,8 @@ Deliverables:
 - adversarial replay scenarios.
 
 Exit test: fifteen same-device reports cannot create a Warning; four independent, spatially spread reports can corroborate a sensor event.
+
+Result: passed. The attack contributes one capped device/sub-cell signal and remains at Advisory despite `S = 0.95`. Four independent reports across four sub-cells produce `R = 0.824835`; after two sustained cycles the fusion state becomes a Warning draft that requires officer sign-off. See [the Sprint 3 report](reports/SPRINT_03.md).
 
 ## Sprint 4 - Evidence dossier and resilient delivery
 

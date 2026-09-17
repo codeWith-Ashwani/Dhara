@@ -1,0 +1,98 @@
+{
+  "generated_at": "2026-09-17T18:30:00+05:30",
+  "mode": "shadow",
+  "public_delivery_enabled": false,
+  "same_device_attack": {
+    "submitted": 15,
+    "accepted": 5,
+    "quarantined": 10,
+    "crowd": {
+      "cell_id": "8960885016bffff",
+      "as_of": "2026-09-17T18:30:00+05:30",
+      "crowd_confidence": 0.01252,
+      "raw_confidence": 0.05008,
+      "spread_factor": 0.25,
+      "distinct_devices": 1,
+      "distinct_subcells": 1,
+      "accepted_reports": 5,
+      "quarantined_reports": 10,
+      "gate_satisfied": false,
+      "sparse_zone_relaxation": false,
+      "contributing_report_ids": [
+        "attack-0"
+      ]
+    },
+    "fusion": {
+      "cell_id": "8960885016bffff",
+      "sensor_confidence": 0.95,
+      "crowd_confidence": 0.01252,
+      "fused_confidence": 0.501558,
+      "candidate_tier": "advisory",
+      "committed_tier": "advisory",
+      "pending_cycles": 0,
+      "divergence": true,
+      "divergence_direction": "sensor_led",
+      "governance_gate_applied": false,
+      "requires_human_review": true,
+      "requires_officer_signoff": false,
+      "diagnostic_question": "Is low community evidence caused by time, coverage, or no local impact?"
+    }
+  },
+  "independent_corroboration": {
+    "submitted": 4,
+    "crowd": {
+      "cell_id": "8960885016bffff",
+      "as_of": "2026-09-17T18:30:00+05:30",
+      "crowd_confidence": 0.824835,
+      "raw_confidence": 0.824835,
+      "spread_factor": 1.0,
+      "distinct_devices": 4,
+      "distinct_subcells": 4,
+      "accepted_reports": 4,
+      "quarantined_reports": 0,
+      "gate_satisfied": true,
+      "sparse_zone_relaxation": false,
+      "contributing_report_ids": [
+        "legit-0",
+        "legit-1",
+        "legit-2",
+        "legit-3"
+      ]
+    },
+    "first_cycle": {
+      "cell_id": "8960885016bffff",
+      "sensor_confidence": 0.95,
+      "crowd_confidence": 0.824835,
+      "fused_confidence": 0.884759,
+      "candidate_tier": "warning",
+      "committed_tier": "monitor",
+      "pending_cycles": 1,
+      "divergence": false,
+      "divergence_direction": null,
+      "governance_gate_applied": false,
+      "requires_human_review": false,
+      "requires_officer_signoff": false,
+      "diagnostic_question": null
+    },
+    "second_cycle": {
+      "cell_id": "8960885016bffff",
+      "sensor_confidence": 0.95,
+      "crowd_confidence": 0.824835,
+      "fused_confidence": 0.884759,
+      "candidate_tier": "warning",
+      "committed_tier": "warning",
+      "pending_cycles": 0,
+      "divergence": false,
+      "divergence_direction": null,
+      "governance_gate_applied": false,
+      "requires_human_review": false,
+      "requires_officer_signoff": true,
+      "diagnostic_question": null
+    }
+  },
+  "acceptance": {
+    "same_device_sybil_blocked": true,
+    "independent_cluster_warning_drafted": true,
+    "officer_signoff_required": true
+  }
+}

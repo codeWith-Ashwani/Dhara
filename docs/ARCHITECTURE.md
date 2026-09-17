@@ -78,6 +78,10 @@ Evaluation is grouped by event: every fold holds out one complete episode, preve
 
 Reports pass capture-integrity, hazard-content, perceptual-deduplication, reporter-trust, spatial-spread and burst-rate gates. The cluster score is a trust-weighted noisy-OR, damped by spatial spread and exponential recency. Multiple reports from one device or micro-cell are capped before aggregation.
 
+Sprint 3 implements these boundaries with signed canonical report payloads, an attestation adapter, monotonic per-device counters, content-classification and perceptual-hash adapters, and explicit quarantine reasons. Quarantined evidence is retained for review but never contributes to `R`. Reporter reliability is a Beta posterior with role-based priors and conservative scoring (`mean - standard deviation`); inactive accounts decay toward their original prior.
+
+The default cluster policy uses a 30-minute window, a 45-minute recency half-life, one contribution per device and geohash-7 sub-cell, and a minimum of four devices across three sub-cells. A verified-node report permits a sparse-zone floor of two devices across two sub-cells. The included HMAC signature, static attestation and deterministic content adapters are executable test doubles, not substitutes for hardware-backed keys, Play Integrity/App Attest, and a reviewed production vision model.
+
 ### Fusion and governance
 
 The initial policy computes:
@@ -85,6 +89,8 @@ The initial policy computes:
 `F = (beta*S + (1-beta)*R + gamma*S*R) / (1 + gamma)`
 
 with initial `beta = 0.60` and `gamma = 0.15`. Thresholds, divergence limits and miss-versus-false-alarm cost are explicit, versioned authority policy rather than hidden model constants.
+
+The initial tiers are Monitor below `0.35`, Advisory at `0.35`, Watch at `0.55`, and Warning at `0.75`. Regardless of the fused score, a Warning candidate is gated unless both `S` and `R` are at least `0.5`. Escalation needs two consecutive cycles and de-escalation needs three. Stream divergence above `0.5` creates a direction-specific human-review question. A committed Warning is still only a draft and carries `requires_officer_signoff = true`.
 
 ### Evidence and delivery
 
@@ -96,6 +102,7 @@ Every proposed alert carries the raw `S`, `R`, and `F`, model attribution, contr
 
 - one FastAPI process;
 - SQLite observation store;
+- in-memory community report, trust and fusion state stores;
 - deterministic JSONL replay files;
 - synchronous feature computation;
 - no outbound delivery.
