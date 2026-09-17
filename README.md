@@ -8,7 +8,7 @@ The prototype deliberately targets one hazard: urban and peri-urban flooding in 
 
 ## What exists today
 
-Sprints 1 through 3 provide the ingestion spine and both shadow-mode evidence loops:
+Sprints 1 through 4 provide the ingestion spine, both evidence loops, and the shadow-mode operator workflow:
 
 - provider adapters for IMD rainfall, CWC gauges, ULB pump telemetry and Flood Hub probability snapshots;
 - range, timestamp, location, unit and staleness quality checks;
@@ -24,7 +24,13 @@ Sprints 1 through 3 provide the ingestion spine and both shadow-mode evidence lo
 - signed and attested community-report intake with content, replay, duplicate and rate gates;
 - conservative Beta-posterior reporter trust, recency weighting and spatial-spread controls;
 - crowd confidence `R` plus governed `S`/`R` fusion, divergence and hysteresis;
-- a dual-stream Warning gate that still requires authorised officer sign-off.
+- a dual-stream Warning gate that still requires authorised officer sign-off;
+- a responsive live triage console and six-panel evidence dossier;
+- weak-report and stream-removal counterfactuals;
+- hash-chained, database-enforced append-only officer decisions;
+- controlled English, Hindi and Marathi alert templates;
+- sandbox push, SMS and IVR adapters plus CAP v1.2 `Test` messages;
+- a signed, one-segment offline SMS report codec.
 
 The fixture is synthetic and clearly labelled. It proves the pipeline contract; it is not presented as historical ground truth.
 
@@ -40,6 +46,7 @@ dhara replay data/replays/pune_ward14_48h.jsonl --database var/dhara.db
 python scripts/build_synthetic_sensor_fixture.py
 dhara train-loop-a data/training/synthetic_sensor_episodes.csv
 python scripts/run_sprint3_adversarial_demo.py
+python scripts/run_sprint4_acceptance_demo.py
 uvicorn dhara.api:app --reload
 ```
 
@@ -55,6 +62,11 @@ Useful endpoints:
 - `POST /v1/reports/community`
 - `GET /v1/crowd/{cell_id}`
 - `POST /v1/fusion/evaluate`
+- `GET /operator` (operator triage and evidence console)
+- `GET /v1/triage`
+- `GET /v1/alerts/{alert_id}/dossier`
+- `POST /v1/alerts/{alert_id}/actions`
+- `GET /v1/alerts/{alert_id}/audit`
 
 Run the checks:
 
@@ -69,4 +81,4 @@ The sprint plan, acceptance criteria, and current status live in [docs/SPRINTS.m
 
 ## Safety boundary
 
-This repository is an engineering prototype. It must remain in shadow mode until locally calibrated against verified events, security-reviewed, and authorised by the relevant disaster-management authority. It does not issue real public warnings.
+This repository is an engineering prototype. It must remain in shadow mode until locally calibrated against verified events, security-reviewed, and authorised by the relevant disaster-management authority. Delivery adapters only record sandbox receipts, CAP messages use `status=Test`, and the repository does not issue real public warnings.

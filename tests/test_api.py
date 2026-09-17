@@ -165,8 +165,38 @@ def test_community_reports_feed_governed_fusion(tmp_path: Path, community_harnes
         first = client.post("/v1/fusion/evaluate", json=request)
         second = client.post("/v1/fusion/evaluate", json=request)
 
+        alert_id = second.json()["alert"]["alert_id"]
+        dashboard = client.get("/operator")
+        dashboard_css = client.get("/static/dashboard.css")
+        dashboard_js = client.get("/static/dashboard.js")
+        triage = client.get("/v1/triage")
+        dossier = client.get(f"/v1/alerts/{alert_id}/dossier")
+        action = client.post(
+            f"/v1/alerts/{alert_id}/actions",
+            json={
+                "action": "escalate_publish_cap",
+                "actor_id": "api-officer",
+                "reason": "Reviewed both evidence streams",
+                "language": "en-IN",
+                "place": "Ward 14",
+                "road": "River Road",
+                "depth": "knee",
+                "valid_until": "2026-09-17T20:30:00+05:30",
+            },
+        )
+        audit = client.get(f"/v1/alerts/{alert_id}/audit")
+
     assert first.status_code == 200
     assert first.json()["crowd"]["gate_satisfied"] is True
     assert first.json()["fusion"]["committed_tier"] == "monitor"
     assert second.json()["fusion"]["committed_tier"] == "warning"
     assert second.json()["fusion"]["requires_officer_signoff"] is True
+    assert dashboard.status_code == 200
+    assert "D.H.A.R.A. Operator Console" in dashboard.text
+    assert dashboard_css.status_code == 200
+    assert dashboard_js.status_code == 200
+    assert triage.json()[0]["alert_id"] == alert_id
+    assert len(dossier.json()["panels"]) == 6
+    assert action.status_code == 200
+    assert len(action.json()["delivery"]["receipts"]) == 3
+    assert audit.json()["chain_valid"] is True

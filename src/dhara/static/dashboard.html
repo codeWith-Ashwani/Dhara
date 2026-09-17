@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="D.H.A.R.A. shadow-mode flood evidence and decision console" />
+    <title>D.H.A.R.A. Operator Console</title>
+    <link rel="stylesheet" href="/static/dashboard.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">ध</span>
+        <div>
+          <strong>D.H.A.R.A.</strong>
+          <span>Flood decision console</span>
+        </div>
+      </div>
+      <div class="mode"><span aria-hidden="true"></span> Shadow mode · no public delivery</div>
+      <button id="refresh" class="quiet-button" type="button">Refresh evidence</button>
+    </header>
+
+    <main class="workspace">
+      <aside class="queue-pane" aria-labelledby="queue-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Live triage</p>
+            <h1 id="queue-title">Cell queue</h1>
+          </div>
+          <output id="case-count" aria-label="Active case count">0</output>
+        </div>
+        <div class="queue-legend" aria-label="Alert tiers">
+          <span><i class="tier-dot warning"></i>Warning</span>
+          <span><i class="tier-dot watch"></i>Watch</span>
+          <span><i class="tier-dot advisory"></i>Advisory</span>
+        </div>
+        <div id="queue" class="queue" aria-live="polite"></div>
+      </aside>
+
+      <section class="case-pane" aria-labelledby="case-title">
+        <div id="empty-state" class="empty-state">
+          <div class="empty-symbol" aria-hidden="true">⌁</div>
+          <h2>No evaluated cells yet</h2>
+          <p>Cases appear here after the fusion endpoint evaluates sensor and community evidence.</p>
+        </div>
+
+        <div id="case-content" class="case-content" hidden>
+          <section class="case-header">
+            <div>
+              <p id="case-kicker" class="eyebrow">Evidence dossier</p>
+              <h2 id="case-title">Selected cell</h2>
+              <p id="narrative" class="narrative"></p>
+            </div>
+            <div class="confidence-block">
+              <span id="tier-badge" class="tier-badge">Monitor</span>
+              <strong id="fused-score">0.00</strong>
+              <span>fused confidence</span>
+            </div>
+          </section>
+
+          <section class="map-and-metrics">
+            <div class="map-card">
+              <div class="card-title">
+                <h3>Evidence spread</h3>
+                <span id="map-caption">No report coordinates</span>
+              </div>
+              <div id="evidence-map" class="evidence-map" role="img" aria-label="Map of contributing community reports">
+                <div class="map-grid" aria-hidden="true"></div>
+              </div>
+            </div>
+            <div class="stream-card" aria-label="Evidence stream confidence">
+              <h3>Independent streams</h3>
+              <div class="meter-row">
+                <div><span>Sensor S</span><strong id="sensor-value">0.00</strong></div>
+                <div class="meter"><span id="sensor-meter"></span></div>
+              </div>
+              <div class="meter-row">
+                <div><span>Community R</span><strong id="crowd-value">0.00</strong></div>
+                <div class="meter"><span id="crowd-meter"></span></div>
+              </div>
+              <div id="review-callout" class="review-callout" hidden></div>
+            </div>
+          </section>
+
+          <section aria-labelledby="panels-title">
+            <div class="section-heading dossier-heading">
+              <div>
+                <p class="eyebrow">Explain before acting</p>
+                <h2 id="panels-title">Six-panel dossier</h2>
+              </div>
+            </div>
+            <div id="panels" class="panel-grid"></div>
+          </section>
+
+          <section class="decision-rail" aria-labelledby="decision-title">
+            <div>
+              <p class="eyebrow">Immutable officer record</p>
+              <h2 id="decision-title">Decision rail</h2>
+              <p>Every action is appended to the audit chain. CAP and delivery remain sandbox-only.</p>
+            </div>
+            <div class="decision-inputs">
+              <label>Officer ID<input id="actor-id" autocomplete="off" placeholder="control-room-01" /></label>
+              <label>Reason<input id="reason" autocomplete="off" placeholder="Evidence reviewed and verified" /></label>
+              <label>Language
+                <select id="language">
+                  <option value="en-IN">English</option>
+                  <option value="hi-IN">हिन्दी</option>
+                  <option value="mr-IN">मराठी</option>
+                </select>
+              </label>
+              <label>Place<input id="place" value="Ward 14" /></label>
+              <label>Road<input id="road" value="Low-lying access road" /></label>
+            </div>
+            <div class="action-buttons" role="group" aria-label="Officer actions">
+              <button data-action="confirm" type="button">Confirm</button>
+              <button data-action="request_ground_verification" type="button">Request verification</button>
+              <button data-action="reject_as_false" class="reject" type="button">Reject as false</button>
+              <button data-action="escalate_publish_cap" class="escalate" type="button">Sign &amp; sandbox CAP</button>
+            </div>
+            <p id="action-status" class="action-status" aria-live="polite"></p>
+          </section>
+        </div>
+      </section>
+    </main>
+    <script src="/static/dashboard.js" defer></script>
+  </body>
+</html>

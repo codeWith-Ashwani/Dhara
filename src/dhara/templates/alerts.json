@@ -1,0 +1,32 @@
+[
+  {
+    "template_id": "flood.warning.avoid_route.v1",
+    "language": "en-IN",
+    "tier": "warning",
+    "channels": ["push", "sms", "ivr"],
+    "approval_scope": "sandbox_only",
+    "human_reviewed": false,
+    "dlt_id": null,
+    "text": "WARNING: {road} near {place} is flooded to {depth_class} level. Do not enter. Use an alternate route until {valid_until}. Confidence: {confidence_word}. - City Disaster Cell"
+  },
+  {
+    "template_id": "flood.warning.avoid_route.v1",
+    "language": "hi-IN",
+    "tier": "warning",
+    "channels": ["push", "sms", "ivr"],
+    "approval_scope": "sandbox_only",
+    "human_reviewed": false,
+    "dlt_id": null,
+    "text": "चेतावनी: {place} के पास {road} पर पानी {depth_class} स्तर तक है। प्रवेश न करें। {valid_until} तक दूसरा मार्ग लें। विश्वास स्तर: {confidence_word}। - नगर आपदा प्रकोष्ठ"
+  },
+  {
+    "template_id": "flood.warning.avoid_route.v1",
+    "language": "mr-IN",
+    "tier": "warning",
+    "channels": ["push", "sms", "ivr"],
+    "approval_scope": "sandbox_only",
+    "human_reviewed": false,
+    "dlt_id": null,
+    "text": "इशारा: {place} जवळील {road} येथे पाणी {depth_class} पातळीपर्यंत आहे. प्रवेश करू नका. {valid_until} पर्यंत पर्यायी मार्ग वापरा. विश्वास पातळी: {confidence_word}. - शहर आपत्ती कक्ष"
+  }
+]

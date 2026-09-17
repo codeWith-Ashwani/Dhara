@@ -51,6 +51,8 @@ Result: passed. The attack contributes one capped device/sub-cell signal and rem
 
 ## Sprint 4 - Evidence dossier and resilient delivery
 
+**Status:** implemented in shadow mode. The templates are explicitly sandbox-only drafts; native-speaker approval, DLT registration, provider credentials, operator RBAC and SACHET onboarding remain external deployment gates.
+
 Deliverables:
 
 - live cell map and triage queue;
@@ -60,6 +62,8 @@ Deliverables:
 - push/SMS/IVR sandbox adapters, offline report codec and CAP v1.2 composer.
 
 Exit test: an evaluator can explain why an alert exists and send the same approved message through every sandbox channel.
+
+Result: passed for the prototype boundary. A deterministic Warning produces six evidence panels, weak-report and stream-removal counterfactuals, a hash-chained officer decision, identical push/SMS/IVR message bodies, a CAP v1.2 `Test` document, and a signed 34-character offline report. See [the Sprint 4 report](reports/SPRINT_04.md).
 
 ## Sprint 5 - Learning loop and pilot hardening
 

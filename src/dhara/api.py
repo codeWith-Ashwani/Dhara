@@ -7,8 +7,11 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+from dhara.audit import DecisionAuditRepository, OfficerAction
 from dhara.community import (
     CommunityEngine,
     DepthOrdinal,
@@ -16,9 +19,11 @@ from dhara.community import (
     ReportSubmission,
 )
 from dhara.connectors import NormalisationError
+from dhara.dossier import SensorEvidence
 from dhara.features import build_feature_snapshot
 from dhara.fusion import FusionEngine
 from dhara.ingestion import IngestionService
+from dhara.operations import TriageService
 from dhara.replay import replay_file
 from dhara.repository import ObservationRepository
 from dhara.sensor_dataset import SensorDatasetError, feature_vector
@@ -70,6 +75,24 @@ class FusionEvaluationRequest(BaseModel):
     sensor_confidence: float = Field(ge=0, le=1)
     as_of: datetime
     sparse_zone: bool = False
+    sensor_model_version: str = Field(default="external-shadow-input", max_length=100)
+    novelty_probability: float | None = Field(default=None, ge=0, le=1)
+    precursor_probability: float | None = Field(default=None, ge=0, le=1)
+    trend_probability: float | None = Field(default=None, ge=0, le=1)
+    sensor_attributions: dict[str, float] = Field(default_factory=dict)
+    estimated_population: int = Field(default=0, ge=0)
+    historical_analogues: list[dict[str, Any]] = Field(default_factory=list, max_length=10)
+
+
+class OfficerActionRequest(BaseModel):
+    action: OfficerAction
+    actor_id: str = Field(min_length=1, max_length=100)
+    reason: str = Field(min_length=3, max_length=500)
+    language: str = Field(default="en-IN", pattern="^(en|hi|mr)-IN$")
+    place: str = Field(default="affected area", min_length=1, max_length=120)
+    road: str = Field(default="affected road", min_length=1, max_length=120)
+    depth: DepthOrdinal = DepthOrdinal.KNEE
+    valid_until: datetime
 
 
 def create_app(
@@ -79,6 +102,8 @@ def create_app(
     sensor_model_path: str | Path | None = None,
     community_engine: CommunityEngine | None = None,
     fusion_engine: FusionEngine | None = None,
+    audit_repository: DecisionAuditRepository | None = None,
+    triage_service: TriageService | None = None,
 ) -> FastAPI:
     resolved_path = database_path or os.getenv("DHARA_DATABASE_PATH", "var/dhara.db")
     resolved_replay_root = Path(
@@ -92,7 +117,7 @@ def create_app(
         loaded_sensor_model = SensorEnsemble.load(configured_model_path)
     application = FastAPI(
         title="D.H.A.R.A. API",
-        version="0.3.0",
+        version="0.4.0",
         description="Shadow-mode dual-loop decision support for urban flood early warning.",
     )
     application.state.repository = repository
@@ -100,6 +125,20 @@ def create_app(
     application.state.sensor_model = loaded_sensor_model
     application.state.community_engine = community_engine or CommunityEngine()
     application.state.fusion_engine = fusion_engine or FusionEngine()
+    application.state.audit_repository = audit_repository or DecisionAuditRepository(
+        resolved_path
+    )
+    application.state.triage_service = triage_service or TriageService(
+        community=application.state.community_engine,
+        fusion=application.state.fusion_engine,
+        audit=application.state.audit_repository,
+    )
+    static_root = Path(__file__).with_name("static")
+    application.mount("/static", StaticFiles(directory=static_root), name="static")
+
+    @application.get("/operator", include_in_schema=False)
+    def operator_dashboard() -> FileResponse:
+        return FileResponse(static_root / "dashboard.html")
 
     @application.get("/health")
     def health() -> dict[str, object]:
@@ -199,7 +238,76 @@ def create_app(
             sensor_confidence=request.sensor_confidence,
             crowd_confidence=crowd.crowd_confidence,
         )
-        return {"crowd": crowd.to_dict(), "fusion": decision.to_dict()}
+        sensor = SensorEvidence(
+            model_version=request.sensor_model_version,
+            novelty_probability=request.novelty_probability,
+            precursor_probability=request.precursor_probability,
+            trend_probability=request.trend_probability,
+            attributions=request.sensor_attributions,
+        )
+        case = application.state.triage_service.record_evaluation(
+            decision=decision,
+            crowd=crowd,
+            sensor=sensor,
+            evaluated_at=request.as_of,
+            estimated_population=request.estimated_population,
+            historical_analogues=tuple(request.historical_analogues),
+        )
+        return {
+            "crowd": crowd.to_dict(),
+            "fusion": decision.to_dict(),
+            "alert": case.summary(),
+            "dossier": case.dossier.to_dict(),
+        }
+
+    @application.get("/v1/triage")
+    def triage_queue() -> list[dict[str, object]]:
+        return [item.summary() for item in application.state.triage_service.list_cases()]
+
+    @application.get("/v1/alerts/{alert_id}/dossier")
+    def alert_dossier(alert_id: str) -> dict[str, object]:
+        try:
+            return application.state.triage_service.get_case(alert_id).dossier.to_dict()
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    @application.get("/v1/alerts/{alert_id}/audit")
+    def alert_audit(alert_id: str) -> dict[str, object]:
+        try:
+            application.state.triage_service.get_case(alert_id)
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        repository = application.state.audit_repository
+        return {
+            "events": [item.to_dict() for item in repository.list_for_alert(alert_id)],
+            "chain_valid": repository.verify_chain(),
+        }
+
+    @application.post("/v1/alerts/{alert_id}/actions")
+    def officer_action(
+        alert_id: str,
+        request: OfficerActionRequest,
+    ) -> dict[str, object]:
+        if request.valid_until.utcoffset() is None:
+            raise HTTPException(status_code=422, detail="valid_until must include a timezone")
+        try:
+            result = application.state.triage_service.act(
+                alert_id=alert_id,
+                action=request.action,
+                actor_id=request.actor_id,
+                reason=request.reason,
+                occurred_at=datetime.now(UTC),
+                language=request.language,
+                place=request.place,
+                road=request.road,
+                depth=request.depth,
+                valid_until=request.valid_until.isoformat(timespec="minutes"),
+            )
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        return result.to_dict()
 
     return application
 

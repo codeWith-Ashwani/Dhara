@@ -207,6 +207,8 @@ class CommunityReport:
     device_id: str
     captured_at: datetime
     received_at: datetime
+    latitude: float
+    longitude: float
     cell_id: str
     geohash7: str
     channel: ReportChannel
@@ -218,6 +220,8 @@ class CommunityReport:
     geo_integrity: float
     contribution: float
     status: ReportStatus
+    signature_valid: bool
+    attestation_passed: bool | None
     quarantine_reason: QuarantineReason | None = None
     perceptual_hash: int | None = None
 
@@ -306,11 +310,15 @@ class CommunityEngine:
 
         reason: QuarantineReason | None = None
         signature_valid = self.signatures.verify(submission)
+        attestation_required = submission.channel in {ReportChannel.APP, ReportChannel.NODE}
+        attestation_passed = (
+            self.attestation.verify(submission.device_id, submission.attestation_token)
+            if attestation_required
+            else None
+        )
         if not signature_valid:
             reason = QuarantineReason.INVALID_SIGNATURE
-        elif submission.channel in {ReportChannel.APP, ReportChannel.NODE} and not (
-            self.attestation.verify(submission.device_id, submission.attestation_token)
-        ):
+        elif attestation_required and not attestation_passed:
             reason = QuarantineReason.ATTESTATION_FAILED
         elif submission.device_counter <= self._device_counters.get(submission.device_id, -1):
             reason = QuarantineReason.REPLAYED_COUNTER
@@ -348,6 +356,8 @@ class CommunityEngine:
             device_id=submission.device_id,
             captured_at=submission.captured_at,
             received_at=submission.received_at,
+            latitude=submission.latitude,
+            longitude=submission.longitude,
             cell_id=cell_id,
             geohash7=subcell,
             channel=submission.channel,
@@ -359,6 +369,8 @@ class CommunityEngine:
             geo_integrity=geo_integrity,
             contribution=contribution,
             status=ReportStatus.QUARANTINED if reason else ReportStatus.ACCEPTED,
+            signature_valid=signature_valid,
+            attestation_passed=attestation_passed,
             quarantine_reason=reason,
             perceptual_hash=assessment.perceptual_hash,
         )
@@ -373,11 +385,12 @@ class CommunityEngine:
         *,
         as_of: datetime,
         sparse_zone: bool = False,
+        exclude_report_ids: frozenset[str] = frozenset(),
     ) -> CrowdAssessment:
         recent = [
             item
             for item in self.store.recent(as_of=as_of, window=self.policy.cluster_window)
-            if item.cell_id == cell_id
+            if item.cell_id == cell_id and item.report_id not in exclude_report_ids
         ]
         accepted = [item for item in recent if item.status is ReportStatus.ACCEPTED]
         devices = {item.device_id for item in accepted}

@@ -96,16 +96,28 @@ The initial tiers are Monitor below `0.35`, Advisory at `0.35`, Watch at `0.55`,
 
 Every proposed alert carries the raw `S`, `R`, and `F`, model attribution, contributing reports, independence audit, threshold/hysteresis state, and counterfactuals with weak reports or either stream removed. Delivery adapters render the same controlled template to app push, SMS and IVR; CAP v1.2 is the government interoperability boundary.
 
+Sprint 4 implements this as a deterministic six-panel dossier: verdict, sensor evidence, crowd evidence, fusion arithmetic, robustness/counterfactuals, and precedent/action. Counterfactual computation uses a pure fusion preview and never advances hysteresis state. It recomputes the crowd cluster after removing up to three weakest contributing reports and also evaluates each stream at zero. Missing historical analogues remain visibly unavailable rather than being fabricated.
+
+The operator console is a responsive working surface served at `/operator`. Its triage queue sorts by committed tier, review requirement and recency; selecting a cell exposes trust-weighted report positions, both confidence streams, the dossier, and the decision rail. It does not authenticate officers itself: pilot deployment must place it behind the authority's identity-aware gateway and map the supplied actor ID to a verified principal.
+
+Officer actions are appended to a SHA-256 hash chain in SQLite. Database triggers reject updates and deletes, making accidental mutation fail closed. Production must additionally use append-only service credentials, replicated storage, external timestamping and security monitoring; a local hash chain is tamper-evident, not a defence against a privileged database administrator.
+
+Alert text is selected from repository-versioned English, Hindi and Marathi slot grammars. Runtime translation is absent. The current language records are labelled `sandbox_only`, `human_reviewed=false`, and have no DLT ID; production delivery must fail until native-speaker review, authority approval and telecom registration are recorded.
+
+Push, SMS and IVR adapters record sandbox receipts and share the exact rendered body hash. The CAP v1.2 composer always emits `status=Test`, `scope=Restricted`, and the H3-R9 area code. No network provider or SACHET transport exists in this sprint. The offline report codec uses the D.H.A.R.A. `DHR` protocol tag, flood/depth codes, geohash-8, elapsed minutes and a per-device HMAC-SHA256 truncated to ten hexadecimal characters; the complete fixture payload is 34 characters.
+
 ## Runtime topology
 
 ### Local prototype
 
 - one FastAPI process;
 - SQLite observation store;
+- SQLite append-only decision audit ledger;
 - in-memory community report, trust and fusion state stores;
 - deterministic JSONL replay files;
 - synchronous feature computation;
-- no outbound delivery.
+- locally served operator console;
+- in-memory sandbox delivery outboxes; no outbound delivery.
 
 This profile is intentionally runnable on a laptop and is not a production topology.
 
@@ -120,7 +132,7 @@ This profile is intentionally runnable on a laptop and is not a production topol
 - Prometheus/Grafana observability and MLflow model registry;
 - sovereign-cloud deployment with encrypted backups and audited RBAC.
 
-`infra/postgres/001_init.sql` establishes the production observation-table contract without forcing contributors to run the full topology during Sprint 1.
+`infra/postgres/001_init.sql` establishes the production observation and append-only decision-audit table contracts without forcing contributors to run the full topology locally.
 
 ## Privacy and security posture
 

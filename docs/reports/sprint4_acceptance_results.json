@@ -1,0 +1,88 @@
+{
+  "generated_at": "2026-09-17T19:30:00+05:30",
+  "mode": "shadow",
+  "public_delivery_enabled": false,
+  "alert": {
+    "alert_id": "dhara-8960885016bffff",
+    "cell_id": "8960885016bffff",
+    "first_cycle_tier": "monitor",
+    "second_cycle_tier": "warning",
+    "sensor_confidence": 0.95,
+    "crowd_confidence": 0.824835,
+    "fused_confidence": 0.884759
+  },
+  "dossier": {
+    "panel_names": [
+      "verdict",
+      "sensor_evidence",
+      "crowd_evidence",
+      "fusion_arithmetic",
+      "robustness_counterfactual",
+      "precedent_action"
+    ],
+    "removed_weakest_reports": [
+      "sprint4-report-1",
+      "sprint4-report-2",
+      "sprint4-report-3"
+    ],
+    "without_weakest_reports": {
+      "fused_confidence": 0.566859,
+      "candidate_tier": "watch",
+      "governance_gate_applied": false
+    },
+    "without_crowd_stream": {
+      "fused_confidence": 0.495652,
+      "candidate_tier": "advisory",
+      "governance_gate_applied": false
+    },
+    "without_sensor_stream": {
+      "fused_confidence": 0.286899,
+      "candidate_tier": "monitor",
+      "governance_gate_applied": false
+    }
+  },
+  "delivery": {
+    "channels": [
+      "push",
+      "sms",
+      "ivr"
+    ],
+    "statuses": [
+      "sandbox_recorded",
+      "sandbox_recorded",
+      "sandbox_recorded"
+    ],
+    "message_sha256": "d558f94baebe0469c83ff39b2d5d8021a07308ee9f9a989dc5144841a6267bfb",
+    "template_id": "flood.warning.avoid_route.v1",
+    "template_language": "en-IN",
+    "template_approval_scope": "sandbox_only",
+    "template_human_reviewed": false,
+    "cap_status": "Test"
+  },
+  "offline_report": {
+    "payload": "DHR|FL|K|tek92ekz|+0007|37119CEC59",
+    "length": 34,
+    "decoded": {
+      "hazard_code": "FL",
+      "depth": "knee",
+      "geohash8": "tek92ekz",
+      "minutes_elapsed": 7,
+      "signature": "37119CEC59"
+    }
+  },
+  "audit": {
+    "events": 1,
+    "chain_valid": true
+  },
+  "acceptance": {
+    "six_panel_dossier": true,
+    "stream_counterfactuals_present": true,
+    "officer_action_audited": true,
+    "audit_chain_valid": true,
+    "same_message_all_channels": true,
+    "push_sms_ivr_sandboxed": true,
+    "cap_is_test_only": true,
+    "offline_codec_round_trip": true,
+    "no_public_delivery": true
+  }
+}
